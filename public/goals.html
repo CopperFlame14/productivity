@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goals - Gamified Productivity Tracker</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .goals-list {
+            margin-top: 2rem;
+        }
+
+        .goal-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .priority-high {
+            color: var(--color-error);
+        }
+
+        .priority-medium {
+            color: var(--color-warning);
+        }
+
+        .priority-low {
+            color: var(--color-info);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <ul class="nav-list">
+            <li><span style="font-size: 1.5rem;">🎮</span></li>
+            <li><a href="/dashboard.html" class="nav-link">Dashboard</a></li>
+            <li><a href="/anime.html" class="nav-link">Anime Rewards</a></li>
+            <li><a href="/goals.html" class="nav-link active">Goals</a></li>
+            <li><a href="/analytics.html" class="nav-link">Analytics</a></li>
+            <li style="margin-left: auto;"><button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>🎯 Goals & Hobbies</h1>
+        <p class="text-muted">Create custom productivity goals and track your progress</p>
+
+        <!-- Create Goal Form -->
+        <div class="card mt-3">
+            <h2>✨ Create New Goal</h2>
+            <form id="goal-form">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Goal Name</label>
+                        <input type="text" id="goal-name" class="form-input" required placeholder="e.g., Learn Python">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select id="goal-type" class="form-input">
+                            <option value="goal">Goal</option>
+                            <option value="hobby">Hobby</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Target Time (minutes/day)</label>
+                        <input type="number" id="goal-target" class="form-input" required min="1" placeholder="30">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select id="goal-priority" class="form-input">
+                            <option value="High">High</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Goal</button>
+            </form>
+        </div>
+
+        <!-- Goals List -->
+        <div class="goals-list" id="goals-container">
+            <h2>📋 Your Goals</h2>
+            <div id="goals-list"></div>
+        </div>
+
+        <div id="message-container" class="mt-2"></div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function loadGoals() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/goals`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const goals = await response.json();
+                    displayGoals(goals);
+                }
+            } catch (error) {
+                console.error('Failed to load goals:', error);
+            }
+        }
+
+        function displayGoals(goals) {
+            const container = document.getElementById('goals-list');
+
+            if (goals.length === 0) {
+                container.innerHTML = '<p class="text-muted">No goals yet. Create your first goal above!</p>';
+                return;
+            }
+
+            container.innerHTML = goals.map(goal => `
+        <div class="goal-item card">
+          <div class="goal-header">
+            <h3>${goal.name} ${goal.type === 'hobby' ? '🎨' : '🎯'}</h3>
+            <span class="badge priority-${goal.priority.toLowerCase()}">${goal.priority} Priority</span>
+          </div>
+          <p class="text-muted">Target: ${goal.targetTime} min/day</p>
+          <p class="text-muted">Total time: ${goal.tracking.totalTimeSpent || 0} minutes | Days completed: ${goal.tracking.daysCompleted || 0}</p>
+          <div class="d-flex gap-2 mt-2">
+            <button onclick="deleteGoal('${goal._id}')" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+        </div>
+      `).join('');
+        }
+
+        async function createGoal(e) {
+            e.preventDefault();
+
+            const data = {
+                name: document.getElementById('goal-name').value,
+                type: document.getElementById('goal-type').value,
+                targetTime: parseInt(document.getElementById('goal-target').value),
+                priority: document.getElementById('goal-priority').value
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/goals`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showMessage('✅ Goal created successfully!', 'success');
+                    document.getElementById('goal-form').reset();
+                    await loadGoals();
+                } else {
+                    showMessage('❌ Failed to create goal', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Network error', 'error');
+            }
+        }
+
+        async function deleteGoal(id) {
+            if (!confirm('Delete this goal?')) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                await fetch(`${API_BASE}/goals/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                showMessage('🗑️ Goal deleted', 'info');
+                await loadGoals();
+            } catch (error) {
+                console.error('Delete error:', error);
+            }
+        }
+
+        function showMessage(message, type = 'info') {
+            const container = document.getElementById('message-container');
+            const className = type === 'success' ? 'badge-success' :
+                type === 'error' ? 'badge-error' : 'badge-info';
+            container.innerHTML = `<div class="badge ${className}">${message}</div>`;
+            setTimeout(() => container.innerHTML = '', 3000);
+        }
+
+        document.getElementById('goal-form').addEventListener('submit', createGoal);
+        loadGoals();
+    </script>
+</body>
+
+</html>

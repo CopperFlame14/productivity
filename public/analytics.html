@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Gamified Productivity Tracker</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .stats-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .big-stat {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .trend-up {
+            color: var(--color-success);
+        }
+
+        .trend-down {
+            color: var(--color-error);
+        }
+
+        .trend-stable {
+            color: var(--color-info);
+        }
+
+        .history-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <ul class="nav-list">
+            <li><span style="font-size: 1.5rem;">🎮</span></li>
+            <li><a href="/dashboard.html" class="nav-link">Dashboard</a></li>
+            <li><a href="/anime.html" class="nav-link">Anime Rewards</a></li>
+            <li><a href="/goals.html" class="nav-link">Goals</a></li>
+            <li><a href="/analytics.html" class="nav-link active">Analytics</a></li>
+            <li style="margin-left: auto;"><button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>📊 Analytics Dashboard</h1>
+        <p class="text-muted">Track your productivity trends and performance</p>
+
+        <!-- Key Stats -->
+        <div class="grid grid-3 mt-3">
+            <div class="stats-card card">
+                <div class="text-muted">Avg Score (7 days)</div>
+                <div class="big-stat" id="avg-score">--</div>
+            </div>
+            <div class="stats-card card">
+                <div class="text-muted">Current Streak 🔥</div>
+                <div class="big-stat text-warning" id="streak">--</div>
+            </div>
+            <div class="stats-card card">
+                <div class="text-muted">Best Streak</div>
+                <div class="big-stat text-success" id="best-streak">--</div>
+            </div>
+        </div>
+
+        <!-- Trend Analysis -->
+        <div class="card mt-3">
+            <h2>📈 Productivity Trend</h2>
+            <div class="grid grid-2">
+                <div>
+                    <h3>Best Day</h3>
+                    <p id="best-day" class="text-success">--</p>
+                    <p id="best-score">Score: --</p>
+                </div>
+                <div>
+                    <h3>Recent Trend</h3>
+                    <p id="trend-indicator" class="trend-stable">--</p>
+                    <p id="trend-description">--</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent History -->
+        <div class="card mt-3">
+            <h2>📅 Recent Activity (Last 7 Days)</h2>
+            <div id="history-container">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function loadAnalytics() {
+            try {
+                const token = localStorage.getItem('token');
+
+                // Load productivity analytics
+                const productivityRes = await fetch(`${API_BASE}/analytics/productivity?days=7`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (productivityRes.ok) {
+                    const data = await productivityRes.json();
+                    displayProductivityStats(data);
+                }
+
+                // Load streak data
+                const streakRes = await fetch(`${API_BASE}/analytics/streak`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (streakRes.ok) {
+                    const streakData = await streakRes.json();
+                    document.getElementById('streak').textContent = streakData.currentStreak;
+                    document.getElementById('best-streak').textContent = streakData.bestStreak;
+                }
+
+                // Load history
+                const historyRes = await fetch(`${API_BASE}/daily/history?days=7`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (historyRes.ok) {
+                    const history = await historyRes.json();
+                    displayHistory(history);
+                }
+
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+            }
+        }
+
+        function displayProductivityStats(data) {
+            if (!data.stats) return;
+
+            const { stats } = data;
+
+            // Average score
+            document.getElementById('avg-score').textContent = stats.averageScore.toFixed(1);
+
+            // Best day
+            if (stats.bestDay) {
+                const date = new Date(stats.bestDay.date);
+                document.getElementById('best-day').textContent = date.toLocaleDateString();
+                document.getElementById('best-score').innerHTML = `
+          Score: ${stats.bestDay.score.toFixed(1)} 
+          <span class="rank-${stats.bestDay.rank.toLowerCase()}">${stats.bestDay.rank}</span>
+        `;
+            }
+
+            // Trend
+            const trendEl = document.getElementById('trend-indicator');
+            const trendDescEl = document.getElementById('trend-description');
+
+            if (stats.trend === 'up') {
+                trendEl.textContent = '📈 Improving';
+                trendEl.className = 'trend-up';
+                trendDescEl.textContent = 'Great job! Your productivity is increasing.';
+            } else if (stats.trend === 'down') {
+                trendEl.textContent = '📉 Declining';
+                trendEl.className = 'trend-down';
+                trendDescEl.textContent = 'Focus on consistency to improve your scores.';
+            } else {
+                trendEl.textContent = '➡️ Stable';
+                trendEl.className = 'trend-stable';
+                trendDescEl.textContent = 'Maintaining steady performance.';
+            }
+        }
+
+        function displayHistory(records) {
+            const container = document.getElementById('history-container');
+
+            if (records.length === 0) {
+                container.innerHTML = '<p class="text-muted">No activity recorded yet.</p>';
+                return;
+            }
+
+            container.innerHTML = records.map(record => {
+                const date = new Date(record.date);
+                const score = record.scores?.finalScore || 0;
+                const rank = record.scores?.rank || 'C';
+
+                return `
+          <div class="history-item">
+            <div>
+              <strong>${date.toLocaleDateString()}</strong>
+              <span class="text-muted ml-2">${date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+            </div>
+            <div>
+              <span class="rank-${rank.toLowerCase()}">${rank}</span>
+              <span class="ml-2">${score.toFixed(1)}</span>
+            </div>
+          </div>
+        `;
+            }).join('');
+        }
+
+        loadAnalytics();
+    </script>
+</body>
+
+</html>
