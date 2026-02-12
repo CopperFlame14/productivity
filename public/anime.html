@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Rewards - Gamified Productivity Tracker</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .reward-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .reward-card {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .big-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .anime-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <ul class="nav-list">
+            <li><span style="font-size: 1.5rem;">🎮</span></li>
+            <li><a href="/dashboard.html" class="nav-link">Dashboard</a></li>
+            <li><a href="/anime.html" class="nav-link active">Anime Rewards</a></li>
+            <li><a href="/goals.html" class="nav-link">Goals</a></li>
+            <li><a href="/analytics.html" class="nav-link">Analytics</a></li>
+            <li style="margin-left: auto;"><button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>🎥 Anime Reward Dashboard</h1>
+        <p class="text-muted">Complete tasks to unlock anime episodes!</p>
+
+        <div class="reward-grid">
+            <div class="reward-card card">
+                <div class="anime-icon">🔓</div>
+                <div class="text-muted">Episodes Unlocked</div>
+                <div class="big-number text-success" id="unlocked">0</div>
+            </div>
+
+            <div class="reward-card card">
+                <div class="anime-icon">👁️</div>
+                <div class="text-muted">Episodes Watched</div>
+                <div class="big-number text-info" id="watched">0</div>
+            </div>
+
+            <div class="reward-card card">
+                <div class="anime-icon">🎬</div>
+                <div class="text-muted">Remaining</div>
+                <div class="big-number text-warning" id="remaining">0</div>
+            </div>
+        </div>
+
+        <div class="card text-center">
+            <h2>🎁 Watch Episode</h2>
+            <p class="text-muted">Enjoy your earned rewards!</p>
+
+            <div class="form-group" style="max-width: 300px; margin: 0 auto;">
+                <label class="form-label">Episodes to Watch</label>
+                <input type="number" id="episodes-to-watch" class="form-input" value="1" min="1" max="10">
+            </div>
+
+            <button id="watch-btn" class="btn btn-primary mt-2">Watch Episode(s)</button>
+
+            <div id="message-container" class="mt-2"></div>
+        </div>
+
+        <div class="card mt-3">
+            <h3>📖 How It Works</h3>
+            <ul style="line-height: 2;">
+                <li>✅ Complete Workout → +1 episode</li>
+                <li>✅ Complete LeetCode → +1 episode</li>
+                <li>✅ Complete Project → +1 episode</li>
+                <li>✅ Complete Study → +1 episode</li>
+                <li>🎁 Extra effort unlocks bonus episodes (no limit!)</li>
+                <li>Level 5+ → +0.5 bonus episode/day</li>
+                <li>Level 10+ → +1 bonus episode/day</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/anime.js"></script>
+</body>
+
+</html>

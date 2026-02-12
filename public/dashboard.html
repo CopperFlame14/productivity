@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gamified Productivity Tracker</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/leetcode-panel.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .task-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-inputs {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .task-inputs input {
+            width: 80px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="nav">
+        <ul class="nav-list">
+            <li><span style="font-size: 1.5rem;">🎮</span></li>
+            <li><a href="/dashboard.html" class="nav-link active">Dashboard</a></li>
+            <li><a href="/anime.html" class="nav-link">Anime Rewards</a></li>
+            <li><a href="/goals.html" class="nav-link">Goals</a></li>
+            <li><a href="/analytics.html" class="nav-link">Analytics</a></li>
+            <li style="margin-left: auto;"><button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>📊 Daily Dashboard</h1>
+        <p class="text-muted">Complete your tasks to level up and unlock rewards!</p>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid mt-3">
+            <div class="stat-card card">
+                <div class="text-muted">Level</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+            <div class="stat-card card">
+                <div class="text-muted">XP</div>
+                <div class="stat-value" id="xp">0</div>
+            </div>
+            <div class="stat-card card">
+                <div class="text-muted">Streak 🔥</div>
+                <div class="stat-value" id="streak">0</div>
+            </div>
+            <div class="stat-card card">
+                <div class="text-muted">HP ❤️</div>
+                <div class="stat-value" id="hp">100</div>
+            </div>
+            <div class="stat-card card">
+                <div class="text-muted">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-card card">
+                <div class="text-muted">Rank</div>
+                <div class="stat-value rank-c" id="rank">C</div>
+            </div>
+        </div>
+
+        <!-- Daily Tasks -->
+        <div class="card">
+            <h2>🎯 Daily Tasks</h2>
+
+            <!-- Workout -->
+            <div class="task-item">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="task-workout">
+                    <span>💪 Workout (20 min)</span>
+                </label>
+                <div class="task-inputs">
+                    <input type="number" id="workout-min" class="form-input" placeholder="Min" min="0">
+                    <input type="number" id="workout-bonus" class="form-input" placeholder="Bonus" min="0">
+                </div>
+            </div>
+
+            <!-- LeetCode - Will be replaced by LeetCodePanel -->
+            <div id="leetcode-container"></div>
+
+            <!-- Project -->
+            <div class="task-item">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="task-project">
+                    <span>💻 Project (30 min)</span>
+                </label>
+                <div class="task-inputs">
+                    <input type="number" id="project-min" class="form-input" placeholder="Min" min="0">
+                    <input type="number" id="project-bonus" class="form-input" placeholder="Bonus" min="0">
+                </div>
+            </div>
+
+            <!-- Study -->
+            <div class="task-item">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="task-study">
+                    <span>📚 Study (20 min)</span>
+                </label>
+                <div class="task-inputs">
+                    <input type="number" id="study-min" class="form-input" placeholder="Min" min="0">
+                    <input type="number" id="study-bonus" class="form-input" placeholder="Bonus" min="0">
+                </div>
+            </div>
+
+            <!-- Water -->
+            <div class="task-item">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="task-water">
+                    <span>💧 Drink Water (8 glasses)</span>
+                </label>
+                <div class="task-inputs">
+                    <input type="number" id="water-glasses" class="form-input" placeholder="Glasses" min="0" max="20">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button id="save-btn" class="btn btn-primary">Save Progress</button>
+                <button id="reset-btn" class="btn btn-secondary">Reset</button>
+            </div>
+        </div>
+
+        <div id="message-container" class="mt-2"></div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/leetcode-panel.js"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+
+</html>
