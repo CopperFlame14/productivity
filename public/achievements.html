@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achievements — ProQuest</title>
+    <meta name="description" content="View your achievement badges and unlock new ones.">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <!-- App shell injected by app.js -->
+
+    <div class="page-header">
+        <h1>🏅 Achievements</h1>
+        <p>Unlock badges by hitting milestones. Keep pushing to collect them all!</p>
+    </div>
+
+    <!-- Achievement Stats -->
+    <div class="stats-grid stagger mb-4">
+        <div class="card stat-card stat-card--primary fade-in-up">
+            <span class="stat-icon">🏅</span>
+            <div class="stat-label">Unlocked</div>
+            <div class="stat-value" id="unlocked-count">0</div>
+        </div>
+        <div class="card stat-card stat-card--accent fade-in-up">
+            <span class="stat-icon">🔒</span>
+            <div class="stat-label">Remaining</div>
+            <div class="stat-value" id="locked-count">0</div>
+        </div>
+        <div class="card stat-card stat-card--success fade-in-up">
+            <span class="stat-icon">📊</span>
+            <div class="stat-label">Completion</div>
+            <div class="stat-value" id="completion-pct">0%</div>
+        </div>
+    </div>
+
+    <!-- Achievement Categories -->
+    <div id="achievements-container"></div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const mockAchievements = [
+            {
+                category: '🔥 Streak Mastery',
+                items: [
+                    { icon: '🔥', name: 'First Flame', desc: 'Complete 1 day streak', unlocked: true },
+                    { icon: '🔥', name: 'Week Warrior', desc: '7-day streak', unlocked: true },
+                    { icon: '🔥', name: 'Fortnight Force', desc: '14-day streak', unlocked: false },
+                    { icon: '🔥', name: 'Month Master', desc: '30-day streak', unlocked: false },
+                    { icon: '☄️', name: 'Untouchable', desc: '100-day streak', unlocked: false },
+                ]
+            },
+            {
+                category: '⭐ XP Milestones',
+                items: [
+                    { icon: '⭐', name: 'Starter', desc: 'Earn 100 XP', unlocked: true },
+                    { icon: '⭐', name: 'Rising Star', desc: 'Earn 500 XP', unlocked: true },
+                    { icon: '🌟', name: 'Shining Star', desc: 'Earn 1,000 XP', unlocked: true },
+                    { icon: '💫', name: 'Supernova', desc: 'Earn 5,000 XP', unlocked: false },
+                    { icon: '✨', name: 'Legendary', desc: 'Earn 10,000 XP', unlocked: false },
+                ]
+            },
+            {
+                category: '🎯 Task Completion',
+                items: [
+                    { icon: '✅', name: 'First Step', desc: 'Complete 1 task', unlocked: true },
+                    { icon: '✅', name: 'Productive', desc: 'Complete 10 tasks', unlocked: true },
+                    { icon: '💪', name: 'Machine', desc: 'Complete 50 tasks', unlocked: false },
+                    { icon: '🏆', name: 'Task Master', desc: 'Complete 100 tasks', unlocked: false },
+                    { icon: '👑', name: 'Perfectionist', desc: 'S-rank 10 days', unlocked: false },
+                ]
+            },
+            {
+                category: '📚 Learning',
+                items: [
+                    { icon: '🧠', name: 'Problem Solver', desc: 'Solve 1 LeetCode', unlocked: true },
+                    { icon: '🧠', name: 'Code Warrior', desc: 'Solve 10 LeetCode', unlocked: false },
+                    { icon: '📖', name: 'Scholar', desc: 'Study 10 hours', unlocked: false },
+                    { icon: '🎓', name: 'Professor', desc: 'Study 50 hours', unlocked: false },
+                ]
+            }
+        ];
+
+        function renderAchievements() {
+            const container = document.getElementById('achievements-container');
+            let totalUnlocked = 0;
+            let totalItems = 0;
+
+            const html = mockAchievements.map((category, ci) => {
+                const unlocked = category.items.filter(i => i.unlocked).length;
+                totalUnlocked += unlocked;
+                totalItems += category.items.length;
+
+                return `
+                    <div class="card mb-4 card-static fade-in-up" style="animation-delay: ${ci * 100}ms">
+                        <div class="card-header">
+                            <h2 class="card-title" style="margin:0;">${category.category}</h2>
+                            <span class="badge badge-primary">${unlocked}/${category.items.length}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-top: var(--sp-5);">
+                            ${category.items.map((item, i) => `
+                                <div class="achievement-badge fade-in-up" style="animation-delay: ${(ci * 100) + (i * 60)}ms">
+                                    <div class="achievement-icon ${item.unlocked ? 'achievement-icon--unlocked' : 'achievement-icon--locked'}">
+                                        ${item.icon}
+                                    </div>
+                                    <div class="achievement-name">${item.name}</div>
+                                    <div class="achievement-desc">${item.desc}</div>
+                                    ${item.unlocked ? '<span class="badge badge-success mt-1" style="font-size: 0.6875rem;">Unlocked</span>' : '<span class="badge badge-info mt-1" style="font-size: 0.6875rem; opacity: 0.5;">Locked</span>'}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+
+            // Update stats
+            document.getElementById('unlocked-count').textContent = totalUnlocked;
+            document.getElementById('locked-count').textContent = totalItems - totalUnlocked;
+            document.getElementById('completion-pct').textContent = Math.round((totalUnlocked / totalItems) * 100) + '%';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(renderAchievements, 100);
+        });
+    </script>
+</body>
+
+</html>

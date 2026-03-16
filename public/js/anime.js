@@ -1,5 +1,6 @@
 /**
  * Anime Rewards JavaScript
+ * Enhanced with toast notifications and animations
  */
 
 const API_BASE = window.location.hostname === 'localhost'
@@ -17,9 +18,20 @@ async function loadAnimeBalance() {
 
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('unlocked').textContent = data.unlocked.toFixed(1);
-            document.getElementById('watched').textContent = data.watched.toFixed(1);
-            document.getElementById('remaining').textContent = data.remaining.toFixed(1);
+
+            const unlockedEl = document.getElementById('unlocked');
+            const watchedEl = document.getElementById('watched');
+            const remainingEl = document.getElementById('remaining');
+
+            if (typeof animateNumber === 'function') {
+                animateNumber(unlockedEl, Math.round(data.unlocked * 10) / 10);
+                animateNumber(watchedEl, Math.round(data.watched * 10) / 10);
+                animateNumber(remainingEl, Math.round(data.remaining * 10) / 10);
+            } else {
+                unlockedEl.textContent = data.unlocked.toFixed(1);
+                watchedEl.textContent = data.watched.toFixed(1);
+                remainingEl.textContent = data.remaining.toFixed(1);
+            }
         }
     } catch (error) {
         console.error('Failed to load anime balance:', error);
@@ -30,7 +42,9 @@ async function watchEpisodes() {
     const episodes = parseFloat(document.getElementById('episodes-to-watch').value);
 
     if (episodes <= 0) {
-        showMessage('❌ Please enter a valid number', 'error');
+        if (typeof showToast === 'function') {
+            showToast('❌ Please enter a valid number', 'error');
+        }
         return;
     }
 
@@ -48,27 +62,21 @@ async function watchEpisodes() {
         const data = await response.json();
 
         if (response.ok) {
-            showMessage(`✅ Enjoyed ${episodes} episode(s)! 🎉`, 'success');
+            if (typeof showToast === 'function') {
+                showToast(`🎬 Enjoyed ${episodes} episode(s)! 🎉`, 'success');
+            }
             await loadAnimeBalance();
         } else {
-            showMessage(`❌ ${data.error}`, 'error');
+            if (typeof showToast === 'function') {
+                showToast(`❌ ${data.error}`, 'error');
+            }
         }
     } catch (error) {
         console.error('Watch error:', error);
-        showMessage('❌ Network error', 'error');
+        if (typeof showToast === 'function') {
+            showToast('❌ Network error', 'error');
+        }
     }
-}
-
-function showMessage(message, type = 'info') {
-    const container = document.getElementById('message-container');
-    const className = type === 'success' ? 'badge-success' :
-        type === 'error' ? 'badge-error' : 'badge-info';
-
-    container.innerHTML = `<div class="badge ${className}">${message}</div>`;
-
-    setTimeout(() => {
-        container.innerHTML = '';
-    }, 3000);
 }
 
 // Initialize

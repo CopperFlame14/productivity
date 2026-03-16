@@ -1,6 +1,7 @@
 /**
  * Dashboard JavaScript
  * Handles daily task tracking and stats display
+ * Enhanced with gamification animations and XP/HP visuals
  */
 
 const API_BASE = window.location.hostname === 'localhost'
@@ -72,22 +73,59 @@ function populateForm(record) {
     }
 
     if (record.scores) {
-        document.getElementById('score').textContent = Math.round(record.scores.finalScore);
-        document.getElementById('rank').textContent = record.scores.rank;
-        document.getElementById('rank').className = `stat-value rank-${record.scores.rank.toLowerCase()}`;
+        const scoreEl = document.getElementById('score');
+        const rankEl = document.getElementById('rank');
+        const scoreVal = Math.round(record.scores.finalScore);
+
+        if (typeof animateNumber === 'function') {
+            animateNumber(scoreEl, scoreVal);
+        } else {
+            scoreEl.textContent = scoreVal;
+        }
+
+        rankEl.textContent = record.scores.rank;
+        rankEl.className = `rank-badge rank-${record.scores.rank.toLowerCase()}`;
     }
 
     if (record.xp) {
-        document.getElementById('level').textContent = record.xp.level;
-        document.getElementById('xp').textContent = record.xp.total;
+        const levelEl = document.getElementById('level');
+        const xpEl = document.getElementById('xp');
+
+        if (typeof animateNumber === 'function') {
+            animateNumber(levelEl, record.xp.level);
+            animateNumber(xpEl, record.xp.total);
+        } else {
+            levelEl.textContent = record.xp.level;
+            xpEl.textContent = record.xp.total;
+        }
+
+        // Update XP bar
+        if (typeof updateXPBar === 'function') {
+            updateXPBar(record.xp.total);
+        }
     }
 
     if (record.streak) {
-        document.getElementById('streak').textContent = record.streak.current;
+        const streakEl = document.getElementById('streak');
+        if (typeof animateNumber === 'function') {
+            animateNumber(streakEl, record.streak.current);
+        } else {
+            streakEl.textContent = record.streak.current;
+        }
     }
 
     if (record.hp !== undefined) {
-        document.getElementById('hp').textContent = record.hp;
+        const hpEl = document.getElementById('hp');
+        if (typeof animateNumber === 'function') {
+            animateNumber(hpEl, record.hp);
+        } else {
+            hpEl.textContent = record.hp;
+        }
+
+        // Update health meter
+        if (typeof updateHealthMeter === 'function') {
+            updateHealthMeter(record.hp);
+        }
     }
 }
 
@@ -103,9 +141,40 @@ async function loadUserStats() {
 
         if (response.ok) {
             const user = await response.json();
-            document.getElementById('level').textContent = user.stats.level;
-            document.getElementById('xp').textContent = user.stats.totalXP;
-            document.getElementById('streak').textContent = user.stats.currentStreak;
+            const levelEl = document.getElementById('level');
+            const xpEl = document.getElementById('xp');
+            const streakEl = document.getElementById('streak');
+
+            if (typeof animateNumber === 'function') {
+                animateNumber(levelEl, user.stats.level);
+                animateNumber(xpEl, user.stats.totalXP);
+                animateNumber(streakEl, user.stats.currentStreak);
+            } else {
+                levelEl.textContent = user.stats.level;
+                xpEl.textContent = user.stats.totalXP;
+                streakEl.textContent = user.stats.currentStreak;
+            }
+
+            // Update XP bar
+            if (typeof updateXPBar === 'function') {
+                updateXPBar(user.stats.totalXP);
+            }
+
+            // Update topbar level
+            const topbarLevel = document.getElementById('topbar-level-text');
+            if (topbarLevel) {
+                topbarLevel.textContent = `Lvl ${user.stats.level}`;
+            }
+
+            // Update greeting with user name
+            const pageHeader = document.querySelector('.page-header h1');
+            if (pageHeader && user.name) {
+                const hour = new Date().getHours();
+                let greeting = 'Good evening';
+                if (hour < 12) greeting = 'Good morning';
+                else if (hour < 17) greeting = 'Good afternoon';
+                pageHeader.textContent = `${greeting}, ${user.name.split(' ')[0]}! 👋`;
+            }
         }
     } catch (error) {
         console.error('Failed to load user stats:', error);
@@ -157,17 +226,31 @@ async function saveDailyData() {
 
         if (response.ok) {
             const data = await response.json();
-            showMessage('✅ Progress saved successfully!', 'success');
+
+            // Use toast if available, else fallback
+            if (typeof showToast === 'function') {
+                showToast('✅ Progress saved successfully!', 'success');
+            } else {
+                showMessage('✅ Progress saved successfully!', 'success');
+            }
 
             // Update display
             populateForm(data.record);
             await loadUserStats();
         } else {
-            showMessage('❌ Failed to save progress', 'error');
+            if (typeof showToast === 'function') {
+                showToast('❌ Failed to save progress', 'error');
+            } else {
+                showMessage('❌ Failed to save progress', 'error');
+            }
         }
     } catch (error) {
         console.error('Save error:', error);
-        showMessage('❌ Network error', 'error');
+        if (typeof showToast === 'function') {
+            showToast('❌ Network error', 'error');
+        } else {
+            showMessage('❌ Network error', 'error');
+        }
     }
 }
 
@@ -186,16 +269,23 @@ async function resetTasks() {
             }
         });
 
-        showMessage('🔄 Tasks reset', 'info');
+        if (typeof showToast === 'function') {
+            showToast('🔄 Tasks reset', 'info');
+        } else {
+            showMessage('🔄 Tasks reset', 'info');
+        }
+
         await loadTodayData();
     } catch (error) {
         console.error('Reset error:', error);
     }
 }
 
-// Show message
+// Show message (legacy fallback)
 function showMessage(message, type = 'info') {
     const container = document.getElementById('message-container');
+    if (!container) return;
+
     const className = type === 'success' ? 'badge-success' :
         type === 'error' ? 'badge-error' : 'badge-info';
 

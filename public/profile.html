@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile — ProQuest</title>
+    <meta name="description" content="Your profile and stats overview.">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <!-- App shell injected by app.js -->
+
+    <div class="page-header">
+        <h1>👤 Profile</h1>
+        <p>Your account overview and statistics.</p>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="card mb-4 card-static fade-in-up">
+        <div class="d-flex align-center gap-4" style="flex-wrap: wrap;">
+            <div class="sidebar-avatar" id="profile-avatar" style="width: 72px; height: 72px; font-size: 1.5rem;">U</div>
+            <div class="flex-1">
+                <h2 id="profile-name" style="margin-bottom: var(--sp-1);">User</h2>
+                <p class="caption" id="profile-email">user@example.com</p>
+                <p class="caption" id="profile-joined">Joined: --</p>
+            </div>
+            <div>
+                <div class="level-badge" id="profile-level" style="font-size: 1rem; padding: var(--sp-2) var(--sp-4);">
+                    <span class="level-badge-icon">⭐</span>
+                    <span>Level 1</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid stagger mb-4">
+        <div class="card stat-card stat-card--primary fade-in-up">
+            <span class="stat-icon">✨</span>
+            <div class="stat-label">Total XP</div>
+            <div class="stat-value" id="profile-xp">0</div>
+        </div>
+        <div class="card stat-card stat-card--warning fade-in-up">
+            <span class="stat-icon">🔥</span>
+            <div class="stat-label">Current Streak</div>
+            <div class="stat-value" id="profile-streak">0</div>
+        </div>
+        <div class="card stat-card stat-card--success fade-in-up">
+            <span class="stat-icon">🏆</span>
+            <div class="stat-label">Best Streak</div>
+            <div class="stat-value" id="profile-best-streak">0</div>
+        </div>
+        <div class="card stat-card stat-card--accent fade-in-up">
+            <span class="stat-icon">🎬</span>
+            <div class="stat-label">Episodes Unlocked</div>
+            <div class="stat-value" id="profile-anime">0</div>
+        </div>
+    </div>
+
+    <!-- XP Progress -->
+    <div class="card mb-4 card-static fade-in-up">
+        <div class="card-header">
+            <h3 class="card-title" style="margin:0;">Level Progress</h3>
+        </div>
+        <div class="xp-bar-container mt-3">
+            <div class="xp-bar-header">
+                <span class="xp-bar-label">Next Level</span>
+                <span class="xp-bar-value" id="profile-xp-progress">0 / 500 XP</span>
+            </div>
+            <div class="xp-bar-track">
+                <div class="xp-bar-fill" id="profile-xp-fill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Actions -->
+    <div class="card card-static fade-in-up">
+        <div class="card-header">
+            <h3 class="card-title" style="margin:0;">Account</h3>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-danger" onclick="if(confirm('Are you sure you want to logout?')) logout();">
+                Sign Out
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : '/api';
+
+        async function loadProfile() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+            // Set basic info
+            document.getElementById('profile-name').textContent = user.name || 'User';
+            document.getElementById('profile-email').textContent = user.email || '';
+            document.getElementById('profile-avatar').textContent =
+                (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+            // Load user stats from API
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/user`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    const stats = userData.stats || {};
+
+                    document.getElementById('profile-xp').textContent = stats.totalXP || 0;
+                    document.getElementById('profile-streak').textContent = stats.currentStreak || 0;
+                    document.getElementById('profile-best-streak').textContent = stats.bestStreak || 0;
+                    document.getElementById('profile-anime').textContent = stats.animeEpisodesUnlocked || 0;
+
+                    const level = stats.level || 1;
+                    document.getElementById('profile-level').innerHTML = `<span class="level-badge-icon">⭐</span><span>Level ${level}</span>`;
+
+                    // XP Progress
+                    const xpInLevel = (stats.totalXP || 0) % 500;
+                    const pct = (xpInLevel / 500) * 100;
+                    document.getElementById('profile-xp-progress').textContent = `${xpInLevel} / 500 XP`;
+                    document.getElementById('profile-xp-fill').style.width = `${pct}%`;
+
+                    // Joined date
+                    if (userData.createdAt) {
+                        const joinDate = new Date(userData.createdAt);
+                        document.getElementById('profile-joined').textContent = `Joined ${joinDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+                    }
+
+                    // Animate numbers
+                    if (typeof animateNumber === 'function') {
+                        animateNumber(document.getElementById('profile-xp'), stats.totalXP || 0);
+                        animateNumber(document.getElementById('profile-streak'), stats.currentStreak || 0);
+                        animateNumber(document.getElementById('profile-best-streak'), stats.bestStreak || 0);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            }
+        }
+
+        loadProfile();
+    </script>
+</body>
+
+</html>
