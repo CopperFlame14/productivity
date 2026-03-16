@@ -1,233 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analytics — ProQuest</title>
-    <meta name="description" content="Track your productivity trends and performance analytics.">
     <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
-
 <body>
-    <!-- App shell injected by app.js -->
+    <div class="page-header"><h1>Analytics</h1><p>Track your productivity trends and performance over time.</p></div>
 
-    <div class="page-header">
-        <h1>📈 Analytics</h1>
-        <p>Track your productivity trends, streaks, and performance over time.</p>
-    </div>
-
-    <!-- Key Stats -->
     <div class="stats-grid stagger mb-4">
-        <div class="card stat-card stat-card--primary fade-in-up">
-            <span class="stat-icon">📊</span>
-            <div class="stat-label">Avg Score (7d)</div>
-            <div class="stat-value" id="avg-score">--</div>
-        </div>
-        <div class="card stat-card stat-card--warning fade-in-up">
-            <span class="stat-icon">🔥</span>
-            <div class="stat-label">Current Streak</div>
-            <div class="stat-value" id="streak">--</div>
-        </div>
-        <div class="card stat-card stat-card--success fade-in-up">
-            <span class="stat-icon">🏆</span>
-            <div class="stat-label">Best Streak</div>
-            <div class="stat-value" id="best-streak">--</div>
-        </div>
+        <div class="card stat-card fade-in-up"><div class="stat-icon icon-primary"><i data-lucide="bar-chart-3"></i></div><div class="stat-label">Avg Score (7d)</div><div class="stat-value stat-card--primary" id="avg-score">--</div></div>
+        <div class="card stat-card fade-in-up"><div class="stat-icon icon-warning"><i data-lucide="flame"></i></div><div class="stat-label">Current Streak</div><div class="stat-value stat-card--warning" id="streak">--</div></div>
+        <div class="card stat-card fade-in-up"><div class="stat-icon icon-success"><i data-lucide="trophy"></i></div><div class="stat-label">Best Streak</div><div class="stat-value stat-card--success" id="best-streak">--</div></div>
     </div>
 
-    <!-- Trend Analysis -->
     <div class="grid grid-2 mb-4">
         <div class="card fade-in-up card-static">
-            <div class="card-header">
-                <h3 class="card-title" style="margin:0;">🥇 Best Day</h3>
-            </div>
-            <div style="margin-top: var(--sp-4);">
-                <div class="overline mb-1">Date</div>
-                <p id="best-day" class="text-success" style="font-size: 1.125rem; font-weight: 600;">--</p>
-                <div class="overline mb-1 mt-3">Score</div>
-                <p id="best-score" style="font-size: 1.125rem; font-weight: 600;">--</p>
-            </div>
+            <div class="card-header"><h3 class="card-title"><i data-lucide="crown"></i> Best Day</h3></div>
+            <div style="margin-top:var(--sp-4)"><div class="overline mb-1">Date</div><p id="best-day" class="text-success" style="font-size:1.125rem;font-weight:600">--</p><div class="overline mb-1 mt-3">Score</div><p id="best-score" style="font-size:1.125rem;font-weight:600">--</p></div>
         </div>
-
         <div class="card fade-in-up card-static">
-            <div class="card-header">
-                <h3 class="card-title" style="margin:0;">📈 Trend</h3>
-            </div>
-            <div style="margin-top: var(--sp-4);">
-                <div class="overline mb-1">Direction</div>
-                <p id="trend-indicator" style="font-size: 1.125rem; font-weight: 700;">--</p>
-                <div class="overline mb-1 mt-3">Analysis</div>
-                <p id="trend-description" class="text-muted">--</p>
-            </div>
+            <div class="card-header"><h3 class="card-title"><i data-lucide="trending-up"></i> Trend</h3></div>
+            <div style="margin-top:var(--sp-4)"><div class="overline mb-1">Direction</div><p id="trend-indicator" style="font-size:1.125rem;font-weight:700">--</p><div class="overline mb-1 mt-3">Analysis</div><p id="trend-description" class="text-muted">--</p></div>
         </div>
     </div>
 
-    <!-- Recent History -->
     <div class="card fade-in-up card-static">
-        <div class="card-header">
-            <h2 class="card-title" style="margin:0;">📅 Recent Activity</h2>
-            <span class="badge badge-info">Last 7 days</span>
-        </div>
-        <div id="history-container" style="margin-top: var(--sp-4);">
-            <div class="loading-overlay">
-                <div class="spinner"></div>
-                <span class="loading-text">Loading analytics...</span>
-            </div>
-        </div>
+        <div class="card-header"><h2 class="card-title"><i data-lucide="calendar-days"></i> Recent Activity</h2><span class="badge badge-info">Last 7 days</span></div>
+        <div id="history-container" style="margin-top:var(--sp-4)"><div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Loading analytics...</span></div></div>
     </div>
 
     <script src="/js/app.js"></script>
     <script src="/js/auth.js"></script>
     <script>
-        const API_BASE = window.location.hostname === 'localhost'
-            ? 'http://localhost:3000/api'
-            : '/api';
+    const API_BASE=window.location.hostname==='localhost'?'http://localhost:3000/api':'/api';
+    async function loadAnalytics(){try{const t=localStorage.getItem('token');const[pR,sR,hR]=await Promise.all([fetch(`${API_BASE}/analytics/productivity?days=7`,{headers:{'Authorization':`Bearer ${t}`}}),fetch(`${API_BASE}/analytics/streak`,{headers:{'Authorization':`Bearer ${t}`}}),fetch(`${API_BASE}/daily/history?days=7`,{headers:{'Authorization':`Bearer ${t}`}})]);
+    if(pR.ok){const d=await pR.json();displayProductivity(d)}if(sR.ok){const s=await sR.json();document.getElementById('streak').textContent=s.currentStreak;document.getElementById('best-streak').textContent=s.bestStreak}if(hR.ok){displayHistory(await hR.json())}}catch(e){console.error(e)}}
 
-        async function loadAnalytics() {
-            try {
-                const token = localStorage.getItem('token');
+    function displayProductivity(d){if(!d.stats)return;const{stats}=d;document.getElementById('avg-score').textContent=stats.averageScore.toFixed(1);
+    if(stats.bestDay){const dt=new Date(stats.bestDay.date);document.getElementById('best-day').textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});document.getElementById('best-score').innerHTML=`<span style="font-size:1.5rem;font-weight:800">${stats.bestDay.score.toFixed(1)}</span> <span class="badge badge-primary ml-2">${stats.bestDay.rank}</span>`}
+    const tEl=document.getElementById('trend-indicator'),tD=document.getElementById('trend-description');if(stats.trend==='up'){tEl.textContent='↗ Improving';tEl.style.color='var(--success-light)';tD.textContent='Your productivity is on the rise!'}else if(stats.trend==='down'){tEl.textContent='↘ Declining';tEl.style.color='var(--danger-light)';tD.textContent='Focus on consistency to bounce back.'}else{tEl.textContent='→ Stable';tEl.style.color='var(--info-light)';tD.textContent='Steady performance. Keep it up!'}}
 
-                // Load productivity analytics
-                const productivityRes = await fetch(`${API_BASE}/analytics/productivity?days=7`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (productivityRes.ok) {
-                    const data = await productivityRes.json();
-                    displayProductivityStats(data);
-                }
-
-                // Load streak data
-                const streakRes = await fetch(`${API_BASE}/analytics/streak`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (streakRes.ok) {
-                    const streakData = await streakRes.json();
-                    const streakEl = document.getElementById('streak');
-                    const bestStreakEl = document.getElementById('best-streak');
-                    if (typeof animateNumber === 'function') {
-                        animateNumber(streakEl, streakData.currentStreak);
-                        animateNumber(bestStreakEl, streakData.bestStreak);
-                    } else {
-                        streakEl.textContent = streakData.currentStreak;
-                        bestStreakEl.textContent = streakData.bestStreak;
-                    }
-                }
-
-                // Load history
-                const historyRes = await fetch(`${API_BASE}/daily/history?days=7`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (historyRes.ok) {
-                    const history = await historyRes.json();
-                    displayHistory(history);
-                }
-
-            } catch (error) {
-                console.error('Failed to load analytics:', error);
-            }
-        }
-
-        function displayProductivityStats(data) {
-            if (!data.stats) return;
-
-            const { stats } = data;
-
-            // Average score
-            const avgScoreEl = document.getElementById('avg-score');
-            avgScoreEl.textContent = stats.averageScore.toFixed(1);
-
-            // Best day
-            if (stats.bestDay) {
-                const date = new Date(stats.bestDay.date);
-                document.getElementById('best-day').textContent = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                const rankClass = `rank-${stats.bestDay.rank.toLowerCase()}`;
-                document.getElementById('best-score').innerHTML = `
-                    <span style="font-size: 1.5rem; font-weight: 800;">${stats.bestDay.score.toFixed(1)}</span>
-                    <span class="badge badge-primary ml-2">${stats.bestDay.rank} Rank</span>
-                `;
-            }
-
-            // Trend
-            const trendEl = document.getElementById('trend-indicator');
-            const trendDescEl = document.getElementById('trend-description');
-
-            if (stats.trend === 'up') {
-                trendEl.textContent = '📈 Improving';
-                trendEl.style.color = 'var(--success-light)';
-                trendDescEl.textContent = 'Great job! Your productivity is on the rise.';
-            } else if (stats.trend === 'down') {
-                trendEl.textContent = '📉 Declining';
-                trendEl.style.color = 'var(--danger-light)';
-                trendDescEl.textContent = 'Focus on consistency to get back on track.';
-            } else {
-                trendEl.textContent = '➡️ Stable';
-                trendEl.style.color = 'var(--info-light)';
-                trendDescEl.textContent = 'Maintaining steady performance. Keep it up!';
-            }
-        }
-
-        function displayHistory(records) {
-            const container = document.getElementById('history-container');
-
-            if (records.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📅</div>
-                        <div class="empty-state-title">No activity recorded</div>
-                        <div class="empty-state-desc">Start completing daily tasks to see your history here.</div>
-                    </div>
-                `;
-                return;
-            }
-
-            // Create mini bar chart first
-            const maxScore = Math.max(...records.map(r => r.scores?.finalScore || 0), 1);
-
-            container.innerHTML = `
-                <div style="display: flex; align-items: flex-end; gap: var(--sp-2); height: 120px; margin-bottom: var(--sp-6); padding: 0 var(--sp-2);">
-                    ${records.map((record, i) => {
-                        const score = record.scores?.finalScore || 0;
-                        const height = Math.max(8, (score / maxScore) * 100);
-                        const date = new Date(record.date);
-                        const day = date.toLocaleDateString('en-US', { weekday: 'short' });
-                        return `
-                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--sp-1);">
-                                <span class="caption" style="font-size: 0.6875rem;">${score.toFixed(0)}</span>
-                                <div style="width: 100%; height: ${height}%; background: linear-gradient(180deg, var(--primary), var(--accent)); border-radius: var(--radius-sm); transition: height 0.6s var(--ease-out); animation: fadeInUp 0.4s var(--ease-out) ${i * 80}ms both; min-height: 4px;"></div>
-                                <span class="caption" style="font-size: 0.6875rem;">${day}</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="divider"></div>
-                ${records.map((record, i) => {
-                    const date = new Date(record.date);
-                    const score = record.scores?.finalScore || 0;
-                    const rank = record.scores?.rank || 'C';
-                    const rankClass = `rank-${rank.toLowerCase()}`;
-
-                    return `
-                        <div class="history-item fade-in-up" style="animation-delay: ${i * 60}ms">
-                            <div style="display: flex; align-items: center; gap: var(--sp-3);">
-                                <span style="font-weight: 600; color: var(--text-primary);">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                                <span class="caption">${date.toLocaleDateString('en-US', { weekday: 'long' })}</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: var(--sp-3);">
-                                <span class="badge badge-primary">${rank}</span>
-                                <span style="font-weight: 700; color: var(--text-primary);">${score.toFixed(1)}</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            `;
-        }
-
-        loadAnalytics();
+    function displayHistory(recs){const c=document.getElementById('history-container');if(!recs.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon"><i data-lucide="calendar-x" style="width:48px;height:48px;color:var(--text-muted)"></i></div><div class="empty-state-title">No activity</div><div class="empty-state-desc">Start completing tasks to see history.</div></div>';if(window.lucide)lucide.createIcons();return}
+    const mx=Math.max(...recs.map(r=>r.scores?.finalScore||0),1);
+    c.innerHTML=`<div style="display:flex;align-items:flex-end;gap:var(--sp-2);height:120px;margin-bottom:var(--sp-6);padding:0 var(--sp-2)">${recs.map((r,i)=>{const s=r.scores?.finalScore||0;const h=Math.max(8,(s/mx)*100);const d=new Date(r.date).toLocaleDateString('en-US',{weekday:'short'});return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:var(--sp-1)"><span class="caption" style="font-size:0.6875rem">${s.toFixed(0)}</span><div style="width:100%;height:${h}%;background:var(--gradient-primary);border-radius:var(--radius-sm);animation:fadeInUp 0.4s var(--ease-out) ${i*80}ms both;min-height:4px;box-shadow:0 0 10px var(--primary-glow)"></div><span class="caption" style="font-size:0.6875rem">${d}</span></div>`}).join('')}</div><div class="divider"></div>${recs.map((r,i)=>{const d=new Date(r.date),s=r.scores?.finalScore||0,rk=r.scores?.rank||'C';return`<div class="history-item fade-in-up" style="animation-delay:${i*60}ms"><div class="d-flex align-center gap-3"><span style="font-weight:600;color:var(--text-primary)">${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span><span class="caption">${d.toLocaleDateString('en-US',{weekday:'long'})}</span></div><div class="d-flex align-center gap-3"><span class="badge badge-primary">${rk}</span><span style="font-weight:700;color:var(--text-primary)">${s.toFixed(1)}</span></div></div>`}).join('')}`;if(window.lucide)lucide.createIcons()}
+    loadAnalytics();
     </script>
 </body>
-
 </html>

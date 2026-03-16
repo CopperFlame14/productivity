@@ -1,306 +1,143 @@
 /**
- * Dashboard JavaScript
- * Handles daily task tracking and stats display
- * Enhanced with gamification animations and XP/HP visuals
+ * Dashboard JS V2
+ * Quest completion, hero section updates, animated numbers
  */
-
-const API_BASE = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000/api'
-    : '/api';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
 let leetcodePanel;
 
-// Initialize dashboard
 async function initDashboard() {
     const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
-
-    // Initialize LeetCode panel
+    if (!token) { window.location.href = '/'; return; }
     leetcodePanel = new LeetCodePanel('leetcode-container');
-
-    // Load today's data
     await loadTodayData();
-
-    // Attach event listeners
     attachEventListeners();
+    // Re-init Lucide icons for dynamically added content
+    if (window.lucide) lucide.createIcons();
 }
 
-// Load today's daily record
 async function loadTodayData() {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE}/daily`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const record = await response.json();
-            populateForm(record);
-        }
-
-        // Also load user stats
+        const res = await fetch(`${API_BASE}/daily`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) populateForm(await res.json());
         await loadUserStats();
-    } catch (error) {
-        console.error('Failed to load data:', error);
-    }
+    } catch (e) { console.error('Failed to load data:', e); }
 }
 
-// Populate form with existing data
 function populateForm(record) {
     if (record.tasks) {
-        // Workout
         document.getElementById('task-workout').checked = record.tasks.workout?.completed || false;
         document.getElementById('workout-min').value = record.tasks.workout?.minutes || '';
         document.getElementById('workout-bonus').value = record.tasks.workout?.bonusMinutes || '';
-
-        // Project
         document.getElementById('task-project').checked = record.tasks.project?.completed || false;
         document.getElementById('project-min').value = record.tasks.project?.minutes || '';
         document.getElementById('project-bonus').value = record.tasks.project?.bonusMinutes || '';
-
-        // Study
         document.getElementById('task-study').checked = record.tasks.study?.completed || false;
         document.getElementById('study-min').value = record.tasks.study?.minutes || '';
         document.getElementById('study-bonus').value = record.tasks.study?.bonusMinutes || '';
-
-        // Water
         document.getElementById('task-water').checked = record.tasks.water?.completed || false;
         document.getElementById('water-glasses').value = record.tasks.water?.glasses || '';
-    }
 
+        // Toggle quest-card completed class
+        ['workout', 'project', 'study', 'water'].forEach(t => {
+            const card = document.getElementById(`quest-${t}`);
+            if (card) card.classList.toggle('completed', record.tasks[t]?.completed || false);
+        });
+    }
     if (record.scores) {
         const scoreEl = document.getElementById('score');
         const rankEl = document.getElementById('rank');
-        const scoreVal = Math.round(record.scores.finalScore);
-
-        if (typeof animateNumber === 'function') {
-            animateNumber(scoreEl, scoreVal);
-        } else {
-            scoreEl.textContent = scoreVal;
-        }
-
+        if (typeof animateNumber === 'function') animateNumber(scoreEl, Math.round(record.scores.finalScore));
+        else scoreEl.textContent = Math.round(record.scores.finalScore);
         rankEl.textContent = record.scores.rank;
         rankEl.className = `rank-badge rank-${record.scores.rank.toLowerCase()}`;
+        document.getElementById('hero-rank').textContent = record.scores.rank;
     }
-
     if (record.xp) {
-        const levelEl = document.getElementById('level');
-        const xpEl = document.getElementById('xp');
-
-        if (typeof animateNumber === 'function') {
-            animateNumber(levelEl, record.xp.level);
-            animateNumber(xpEl, record.xp.total);
-        } else {
-            levelEl.textContent = record.xp.level;
-            xpEl.textContent = record.xp.total;
-        }
-
-        // Update XP bar
-        if (typeof updateXPBar === 'function') {
-            updateXPBar(record.xp.total);
-        }
+        const lvEl = document.getElementById('level'), xpEl = document.getElementById('xp');
+        if (typeof animateNumber === 'function') { animateNumber(lvEl, record.xp.level); animateNumber(xpEl, record.xp.total); }
+        else { lvEl.textContent = record.xp.level; xpEl.textContent = record.xp.total; }
+        if (typeof updateXPBar === 'function') updateXPBar(record.xp.total);
+        document.getElementById('hero-level').textContent = record.xp.level;
     }
-
     if (record.streak) {
-        const streakEl = document.getElementById('streak');
-        if (typeof animateNumber === 'function') {
-            animateNumber(streakEl, record.streak.current);
-        } else {
-            streakEl.textContent = record.streak.current;
-        }
+        const sEl = document.getElementById('streak');
+        if (typeof animateNumber === 'function') animateNumber(sEl, record.streak.current);
+        else sEl.textContent = record.streak.current;
+        document.getElementById('hero-streak').textContent = `${record.streak.current} days`;
     }
-
     if (record.hp !== undefined) {
         const hpEl = document.getElementById('hp');
-        if (typeof animateNumber === 'function') {
-            animateNumber(hpEl, record.hp);
-        } else {
-            hpEl.textContent = record.hp;
-        }
-
-        // Update health meter
-        if (typeof updateHealthMeter === 'function') {
-            updateHealthMeter(record.hp);
-        }
+        if (typeof animateNumber === 'function') animateNumber(hpEl, record.hp);
+        else hpEl.textContent = record.hp;
+        if (typeof updateHealthMeter === 'function') updateHealthMeter(record.hp);
     }
 }
 
-// Load user stats
 async function loadUserStats() {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE}/user`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const res = await fetch(`${API_BASE}/user`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const user = await res.json();
+        const s = user.stats;
 
-        if (response.ok) {
-            const user = await response.json();
-            const levelEl = document.getElementById('level');
-            const xpEl = document.getElementById('xp');
-            const streakEl = document.getElementById('streak');
-
-            if (typeof animateNumber === 'function') {
-                animateNumber(levelEl, user.stats.level);
-                animateNumber(xpEl, user.stats.totalXP);
-                animateNumber(streakEl, user.stats.currentStreak);
-            } else {
-                levelEl.textContent = user.stats.level;
-                xpEl.textContent = user.stats.totalXP;
-                streakEl.textContent = user.stats.currentStreak;
-            }
-
-            // Update XP bar
-            if (typeof updateXPBar === 'function') {
-                updateXPBar(user.stats.totalXP);
-            }
-
-            // Update topbar level
-            const topbarLevel = document.getElementById('topbar-level-text');
-            if (topbarLevel) {
-                topbarLevel.textContent = `Lvl ${user.stats.level}`;
-            }
-
-            // Update greeting with user name
-            const pageHeader = document.querySelector('.page-header h1');
-            if (pageHeader && user.name) {
-                const hour = new Date().getHours();
-                let greeting = 'Good evening';
-                if (hour < 12) greeting = 'Good morning';
-                else if (hour < 17) greeting = 'Good afternoon';
-                pageHeader.textContent = `${greeting}, ${user.name.split(' ')[0]}! 👋`;
-            }
+        if (typeof animateNumber === 'function') {
+            animateNumber(document.getElementById('level'), s.level);
+            animateNumber(document.getElementById('xp'), s.totalXP);
+            animateNumber(document.getElementById('streak'), s.currentStreak);
         }
-    } catch (error) {
-        console.error('Failed to load user stats:', error);
-    }
+        if (typeof updateXPBar === 'function') updateXPBar(s.totalXP);
+
+        // Update hero
+        document.getElementById('hero-level').textContent = s.level;
+        document.getElementById('hero-streak').textContent = `${s.currentStreak} days`;
+        const topLvl = document.getElementById('topbar-level-text');
+        if (topLvl) topLvl.textContent = `Lvl ${s.level}`;
+
+        // Personalized greeting
+        const heroName = document.getElementById('hero-name');
+        if (heroName && user.name) {
+            const h = new Date().getHours();
+            const heroGreet = document.querySelector('.hero-greeting');
+            const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+            if (heroGreet) heroGreet.innerHTML = `${greeting}, <span>${user.name.split(' ')[0]}</span> 👋`;
+        }
+    } catch (e) { console.error(e); }
 }
 
-// Save daily data
 async function saveDailyData() {
     try {
-        // Get LeetCode data (auto or manual)
-        const leetcodeProblems = await leetcodePanel.getProblemsCompleted();
-
+        const lc = await leetcodePanel.getProblemsCompleted();
         const tasks = {
-            workout: {
-                completed: document.getElementById('task-workout').checked,
-                minutes: parseInt(document.getElementById('workout-min').value) || 0,
-                bonusMinutes: parseInt(document.getElementById('workout-bonus').value) || 0
-            },
-            leetcode: {
-                completed: leetcodeProblems >= 1,
-                problemsSolved: leetcodeProblems,
-                bonusProblems: Math.max(0, leetcodeProblems - 1)
-            },
-            project: {
-                completed: document.getElementById('task-project').checked,
-                minutes: parseInt(document.getElementById('project-min').value) || 0,
-                bonusMinutes: parseInt(document.getElementById('project-bonus').value) || 0
-            },
-            study: {
-                completed: document.getElementById('task-study').checked,
-                minutes: parseInt(document.getElementById('study-min').value) || 0,
-                bonusMinutes: parseInt(document.getElementById('study-bonus').value) || 0
-            },
-            water: {
-                completed: document.getElementById('task-water').checked,
-                glasses: parseInt(document.getElementById('water-glasses').value) || 0
-            }
+            workout: { completed: document.getElementById('task-workout').checked, minutes: parseInt(document.getElementById('workout-min').value) || 0, bonusMinutes: parseInt(document.getElementById('workout-bonus').value) || 0 },
+            leetcode: { completed: lc >= 1, problemsSolved: lc, bonusProblems: Math.max(0, lc - 1) },
+            project: { completed: document.getElementById('task-project').checked, minutes: parseInt(document.getElementById('project-min').value) || 0, bonusMinutes: parseInt(document.getElementById('project-bonus').value) || 0 },
+            study: { completed: document.getElementById('task-study').checked, minutes: parseInt(document.getElementById('study-min').value) || 0, bonusMinutes: parseInt(document.getElementById('study-bonus').value) || 0 },
+            water: { completed: document.getElementById('task-water').checked, glasses: parseInt(document.getElementById('water-glasses').value) || 0 }
         };
-
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE}/daily`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ tasks })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-
-            // Use toast if available, else fallback
-            if (typeof showToast === 'function') {
-                showToast('✅ Progress saved successfully!', 'success');
-            } else {
-                showMessage('✅ Progress saved successfully!', 'success');
-            }
-
-            // Update display
-            populateForm(data.record);
-            await loadUserStats();
-        } else {
-            if (typeof showToast === 'function') {
-                showToast('❌ Failed to save progress', 'error');
-            } else {
-                showMessage('❌ Failed to save progress', 'error');
-            }
-        }
-    } catch (error) {
-        console.error('Save error:', error);
-        if (typeof showToast === 'function') {
-            showToast('❌ Network error', 'error');
-        } else {
-            showMessage('❌ Network error', 'error');
-        }
-    }
+        const res = await fetch(`${API_BASE}/daily`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ tasks }) });
+        if (res.ok) { const data = await res.json(); showToast('✅ Progress saved!', 'success'); populateForm(data.record); await loadUserStats(); }
+        else showToast('Failed to save', 'error');
+    } catch (e) { console.error(e); showToast('Network error', 'error'); }
 }
 
-// Reset daily tasks
 async function resetTasks() {
-    if (!confirm('Are you sure you want to reset all tasks?')) {
-        return;
-    }
-
-    try {
-        const token = localStorage.getItem('token');
-        await fetch(`${API_BASE}/daily/reset`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (typeof showToast === 'function') {
-            showToast('🔄 Tasks reset', 'info');
-        } else {
-            showMessage('🔄 Tasks reset', 'info');
-        }
-
-        await loadTodayData();
-    } catch (error) {
-        console.error('Reset error:', error);
-    }
+    if (!confirm('Reset all quests?')) return;
+    try { await fetch(`${API_BASE}/daily/reset`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }); showToast('Quests reset', 'info'); await loadTodayData(); } catch (e) { console.error(e); }
 }
 
-// Show message (legacy fallback)
-function showMessage(message, type = 'info') {
-    const container = document.getElementById('message-container');
-    if (!container) return;
-
-    const className = type === 'success' ? 'badge-success' :
-        type === 'error' ? 'badge-error' : 'badge-info';
-
-    container.innerHTML = `<div class="badge ${className}">${message}</div>`;
-
-    setTimeout(() => {
-        container.innerHTML = '';
-    }, 3000);
-}
-
-// Attach event listeners
 function attachEventListeners() {
     document.getElementById('save-btn').addEventListener('click', saveDailyData);
     document.getElementById('reset-btn').addEventListener('click', resetTasks);
+    // Quest card checkbox -> toggle completed class
+    ['workout', 'project', 'study', 'water'].forEach(t => {
+        const cb = document.getElementById(`task-${t}`);
+        if (cb) cb.addEventListener('change', () => {
+            const card = document.getElementById(`quest-${t}`);
+            if (card) card.classList.toggle('completed', cb.checked);
+        });
+    });
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', initDashboard);

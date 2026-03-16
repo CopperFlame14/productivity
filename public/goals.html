@@ -1,216 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goals Planner — ProQuest</title>
-    <meta name="description" content="Create and track your productivity goals and hobbies.">
+    <title>Goals — ProQuest</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
-
 <body>
-    <!-- App shell injected by app.js -->
+    <div class="page-header"><h1>Goals Planner</h1><p>Create custom goals and hobbies. Track your daily progress.</p></div>
 
-    <div class="page-header">
-        <h1>🎯 Goals Planner</h1>
-        <p>Create custom productivity goals and track your daily progress.</p>
-    </div>
-
-    <!-- Create Goal Form -->
     <div class="card mb-4 card-static fade-in-up">
-        <div class="card-header">
-            <h2 class="card-title" style="margin:0;">✨ Create New Goal</h2>
-        </div>
-        <form id="goal-form" style="margin-top: var(--sp-4);">
+        <div class="card-header"><h2 class="card-title"><i data-lucide="plus-circle"></i> Create New Goal</h2></div>
+        <form id="goal-form" style="margin-top:var(--sp-4)">
             <div class="grid grid-2">
-                <div class="form-group">
-                    <label class="form-label">Goal Name</label>
-                    <input type="text" id="goal-name" class="form-input" required placeholder="e.g., Learn Python">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Type</label>
-                    <select id="goal-type" class="form-input">
-                        <option value="goal">🎯 Goal</option>
-                        <option value="hobby">🎨 Hobby</option>
-                    </select>
-                </div>
+                <div class="form-group"><label class="form-label">Goal Name</label><input type="text" id="goal-name" class="form-input" required placeholder="e.g., Learn Python"></div>
+                <div class="form-group"><label class="form-label">Type</label><select id="goal-type" class="form-input"><option value="goal">Goal</option><option value="hobby">Hobby</option></select></div>
             </div>
-
             <div class="grid grid-2">
-                <div class="form-group">
-                    <label class="form-label">Target Time (min/day)</label>
-                    <input type="number" id="goal-target" class="form-input" required min="1" placeholder="30">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Priority</label>
-                    <select id="goal-priority" class="form-input">
-                        <option value="High">🔴 High</option>
-                        <option value="Medium" selected>🟡 Medium</option>
-                        <option value="Low">🔵 Low</option>
-                    </select>
-                </div>
+                <div class="form-group"><label class="form-label">Target (min/day)</label><input type="number" id="goal-target" class="form-input" required min="1" placeholder="30"></div>
+                <div class="form-group"><label class="form-label">Priority</label><select id="goal-priority" class="form-input"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select></div>
             </div>
-
-            <button type="submit" class="btn btn-primary">
-                Create Goal
-            </button>
+            <button type="submit" class="btn btn-primary"><i data-lucide="plus" style="width:16px;height:16px"></i> Create Goal</button>
         </form>
     </div>
 
-    <!-- Goals List -->
-    <div class="fade-in-up">
-        <div class="d-flex justify-between align-center mb-3">
-            <h2>📋 Your Goals</h2>
-        </div>
-        <div id="goals-list">
-            <div class="loading-overlay">
-                <div class="spinner"></div>
-                <span class="loading-text">Loading goals...</span>
-            </div>
-        </div>
-    </div>
-
+    <div class="fade-in-up"><h2 class="mb-3">Your Goals</h2><div id="goals-list"><div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Loading goals...</span></div></div></div>
     <div id="message-container" class="mt-2"></div>
 
     <script src="/js/app.js"></script>
     <script src="/js/auth.js"></script>
     <script>
-        const API_BASE = window.location.hostname === 'localhost'
-            ? 'http://localhost:3000/api'
-            : '/api';
-
-        async function loadGoals() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE}/goals`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const goals = await response.json();
-                    displayGoals(goals);
-                }
-            } catch (error) {
-                console.error('Failed to load goals:', error);
-            }
-        }
-
-        function displayGoals(goals) {
-            const container = document.getElementById('goals-list');
-
-            if (goals.length === 0) {
-                container.innerHTML = `
-                    <div class="card card-static">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🎯</div>
-                            <div class="empty-state-title">No goals yet</div>
-                            <div class="empty-state-desc">Create your first goal above to start tracking your productivity and hobbies.</div>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = goals.map((goal, i) => {
-                const totalTime = goal.tracking?.totalTimeSpent || 0;
-                const daysCompleted = goal.tracking?.daysCompleted || 0;
-                const priorityClass = `priority-${goal.priority.toLowerCase()}`;
-                const typeIcon = goal.type === 'hobby' ? '🎨' : '🎯';
-                const badgeClass = goal.priority === 'High' ? 'badge-error' :
-                    goal.priority === 'Medium' ? 'badge-warning' : 'badge-info';
-
-                return `
-                    <div class="card goal-item fade-in-up" style="animation-delay: ${i * 60}ms">
-                        <div class="goal-header">
-                            <h3 style="margin:0; display: flex; align-items: center; gap: var(--sp-2);">
-                                ${typeIcon} ${goal.name}
-                            </h3>
-                            <span class="badge ${badgeClass}">${goal.priority}</span>
-                        </div>
-                        <div class="d-flex gap-4 mt-2" style="flex-wrap: wrap;">
-                            <div>
-                                <span class="caption">Target</span>
-                                <p style="margin:0; color: var(--text-primary); font-weight: 600;">${goal.targetTime} min/day</p>
-                            </div>
-                            <div>
-                                <span class="caption">Total Time</span>
-                                <p style="margin:0; color: var(--primary-light); font-weight: 600;">${totalTime} min</p>
-                            </div>
-                            <div>
-                                <span class="caption">Days Done</span>
-                                <p style="margin:0; color: var(--success-light); font-weight: 600;">${daysCompleted}</p>
-                            </div>
-                        </div>
-                        ${daysCompleted > 0 ? `
-                        <div class="mt-3">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${Math.min(100, (daysCompleted / 30) * 100)}%"></div>
-                            </div>
-                            <span class="caption mt-1 d-block">${daysCompleted}/30 day streak</span>
-                        </div>
-                        ` : ''}
-                        <div class="d-flex gap-2 mt-3">
-                            <button onclick="deleteGoal('${goal._id}')" class="btn btn-danger btn-sm">Delete</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function createGoal(e) {
-            e.preventDefault();
-
-            const data = {
-                name: document.getElementById('goal-name').value,
-                type: document.getElementById('goal-type').value,
-                targetTime: parseInt(document.getElementById('goal-target').value),
-                priority: document.getElementById('goal-priority').value
-            };
-
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE}/goals`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    showToast('✅ Goal created successfully!', 'success');
-                    document.getElementById('goal-form').reset();
-                    await loadGoals();
-                } else {
-                    showToast('❌ Failed to create goal', 'error');
-                }
-            } catch (error) {
-                showToast('❌ Network error', 'error');
-            }
-        }
-
-        async function deleteGoal(id) {
-            if (!confirm('Delete this goal?')) return;
-
-            try {
-                const token = localStorage.getItem('token');
-                await fetch(`${API_BASE}/goals/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                showToast('🗑️ Goal deleted', 'info');
-                await loadGoals();
-            } catch (error) {
-                console.error('Delete error:', error);
-            }
-        }
-
-        document.getElementById('goal-form').addEventListener('submit', createGoal);
-        loadGoals();
+    const API_BASE = window.location.hostname==='localhost'?'http://localhost:3000/api':'/api';
+    async function loadGoals(){try{const r=await fetch(`${API_BASE}/goals`,{headers:{'Authorization':`Bearer ${localStorage.getItem('token')}`}});if(r.ok){displayGoals(await r.json())}}catch(e){console.error(e)}}
+    function displayGoals(goals){const c=document.getElementById('goals-list');if(!goals.length){c.innerHTML='<div class="card card-static"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="target" style="width:48px;height:48px;color:var(--text-muted)"></i></div><div class="empty-state-title">No goals yet</div><div class="empty-state-desc">Create your first goal above to start tracking.</div></div></div>';if(window.lucide)lucide.createIcons();return}
+    c.innerHTML=goals.map((g,i)=>{const t=g.tracking?.totalTimeSpent||0,d=g.tracking?.daysCompleted||0,bc=g.priority==='High'?'badge-error':g.priority==='Medium'?'badge-warning':'badge-info';return`<div class="card goal-item fade-in-up" style="animation-delay:${i*60}ms"><div class="goal-header"><h3 style="margin:0">${g.name}</h3><span class="badge ${bc}">${g.priority}</span></div><div class="d-flex gap-4 mt-1 flex-wrap"><div><span class="caption">Target</span><p style="margin:0;color:var(--text-primary);font-weight:600">${g.targetTime} min/day</p></div><div><span class="caption">Total</span><p style="margin:0;color:var(--primary-light);font-weight:600">${t} min</p></div><div><span class="caption">Days</span><p style="margin:0;color:var(--success-light);font-weight:600">${d}</p></div></div>${d>0?`<div class="mt-2"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,(d/30)*100)}%"></div></div><span class="caption mt-1 d-block">${d}/30 day streak</span></div>`:''}<div class="d-flex gap-2 mt-3"><button onclick="deleteGoal('${g._id}')" class="btn btn-danger btn-sm"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete</button></div></div>`}).join('');if(window.lucide)lucide.createIcons()}
+    async function createGoal(e){e.preventDefault();const d={name:document.getElementById('goal-name').value,type:document.getElementById('goal-type').value,targetTime:parseInt(document.getElementById('goal-target').value),priority:document.getElementById('goal-priority').value};try{const r=await fetch(`${API_BASE}/goals`,{method:'POST',headers:{'Authorization':`Bearer ${localStorage.getItem('token')}`,'Content-Type':'application/json'},body:JSON.stringify(d)});if(r.ok){showToast('Goal created!','success');document.getElementById('goal-form').reset();await loadGoals()}else{showToast('Failed to create goal','error')}}catch(e){showToast('Network error','error')}}
+    async function deleteGoal(id){if(!confirm('Delete this goal?'))return;try{await fetch(`${API_BASE}/goals/${id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${localStorage.getItem('token')}`}});showToast('Goal deleted','info');await loadGoals()}catch(e){console.error(e)}}
+    document.getElementById('goal-form').addEventListener('submit',createGoal);loadGoals();
     </script>
 </body>
-
 </html>
