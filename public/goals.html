@@ -4,104 +4,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Goals - Gamified Productivity Tracker</title>
+    <title>Goals Planner — ProQuest</title>
+    <meta name="description" content="Create and track your productivity goals and hobbies.">
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        .goals-list {
-            margin-top: 2rem;
-        }
-
-        .goal-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 1.5rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-        }
-
-        .goal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .priority-high {
-            color: var(--color-error);
-        }
-
-        .priority-medium {
-            color: var(--color-warning);
-        }
-
-        .priority-low {
-            color: var(--color-info);
-        }
-    </style>
 </head>
 
 <body>
-    <nav class="nav">
-        <ul class="nav-list">
-            <li><span style="font-size: 1.5rem;">🎮</span></li>
-            <li><a href="/dashboard.html" class="nav-link">Dashboard</a></li>
-            <li><a href="/anime.html" class="nav-link">Anime Rewards</a></li>
-            <li><a href="/goals.html" class="nav-link active">Goals</a></li>
-            <li><a href="/analytics.html" class="nav-link">Analytics</a></li>
-            <li style="margin-left: auto;"><button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
-            </li>
-        </ul>
-    </nav>
+    <!-- App shell injected by app.js -->
 
-    <div class="container">
-        <h1>🎯 Goals & Hobbies</h1>
-        <p class="text-muted">Create custom productivity goals and track your progress</p>
-
-        <!-- Create Goal Form -->
-        <div class="card mt-3">
-            <h2>✨ Create New Goal</h2>
-            <form id="goal-form">
-                <div class="grid grid-2">
-                    <div class="form-group">
-                        <label class="form-label">Goal Name</label>
-                        <input type="text" id="goal-name" class="form-input" required placeholder="e.g., Learn Python">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Type</label>
-                        <select id="goal-type" class="form-input">
-                            <option value="goal">Goal</option>
-                            <option value="hobby">Hobby</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-2">
-                    <div class="form-group">
-                        <label class="form-label">Target Time (minutes/day)</label>
-                        <input type="number" id="goal-target" class="form-input" required min="1" placeholder="30">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Priority</label>
-                        <select id="goal-priority" class="form-input">
-                            <option value="High">High</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary">Create Goal</button>
-            </form>
-        </div>
-
-        <!-- Goals List -->
-        <div class="goals-list" id="goals-container">
-            <h2>📋 Your Goals</h2>
-            <div id="goals-list"></div>
-        </div>
-
-        <div id="message-container" class="mt-2"></div>
+    <div class="page-header">
+        <h1>🎯 Goals Planner</h1>
+        <p>Create custom productivity goals and track your daily progress.</p>
     </div>
 
+    <!-- Create Goal Form -->
+    <div class="card mb-4 card-static fade-in-up">
+        <div class="card-header">
+            <h2 class="card-title" style="margin:0;">✨ Create New Goal</h2>
+        </div>
+        <form id="goal-form" style="margin-top: var(--sp-4);">
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label">Goal Name</label>
+                    <input type="text" id="goal-name" class="form-input" required placeholder="e.g., Learn Python">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <select id="goal-type" class="form-input">
+                        <option value="goal">🎯 Goal</option>
+                        <option value="hobby">🎨 Hobby</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label">Target Time (min/day)</label>
+                    <input type="number" id="goal-target" class="form-input" required min="1" placeholder="30">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select id="goal-priority" class="form-input">
+                        <option value="High">🔴 High</option>
+                        <option value="Medium" selected>🟡 Medium</option>
+                        <option value="Low">🔵 Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Create Goal
+            </button>
+        </form>
+    </div>
+
+    <!-- Goals List -->
+    <div class="fade-in-up">
+        <div class="d-flex justify-between align-center mb-3">
+            <h2>📋 Your Goals</h2>
+        </div>
+        <div id="goals-list">
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <span class="loading-text">Loading goals...</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-container" class="mt-2"></div>
+
+    <script src="/js/app.js"></script>
     <script src="/js/auth.js"></script>
     <script>
         const API_BASE = window.location.hostname === 'localhost'
@@ -128,23 +100,62 @@
             const container = document.getElementById('goals-list');
 
             if (goals.length === 0) {
-                container.innerHTML = '<p class="text-muted">No goals yet. Create your first goal above!</p>';
+                container.innerHTML = `
+                    <div class="card card-static">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🎯</div>
+                            <div class="empty-state-title">No goals yet</div>
+                            <div class="empty-state-desc">Create your first goal above to start tracking your productivity and hobbies.</div>
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
-            container.innerHTML = goals.map(goal => `
-        <div class="goal-item card">
-          <div class="goal-header">
-            <h3>${goal.name} ${goal.type === 'hobby' ? '🎨' : '🎯'}</h3>
-            <span class="badge priority-${goal.priority.toLowerCase()}">${goal.priority} Priority</span>
-          </div>
-          <p class="text-muted">Target: ${goal.targetTime} min/day</p>
-          <p class="text-muted">Total time: ${goal.tracking.totalTimeSpent || 0} minutes | Days completed: ${goal.tracking.daysCompleted || 0}</p>
-          <div class="d-flex gap-2 mt-2">
-            <button onclick="deleteGoal('${goal._id}')" class="btn btn-danger btn-sm">Delete</button>
-          </div>
-        </div>
-      `).join('');
+            container.innerHTML = goals.map((goal, i) => {
+                const totalTime = goal.tracking?.totalTimeSpent || 0;
+                const daysCompleted = goal.tracking?.daysCompleted || 0;
+                const priorityClass = `priority-${goal.priority.toLowerCase()}`;
+                const typeIcon = goal.type === 'hobby' ? '🎨' : '🎯';
+                const badgeClass = goal.priority === 'High' ? 'badge-error' :
+                    goal.priority === 'Medium' ? 'badge-warning' : 'badge-info';
+
+                return `
+                    <div class="card goal-item fade-in-up" style="animation-delay: ${i * 60}ms">
+                        <div class="goal-header">
+                            <h3 style="margin:0; display: flex; align-items: center; gap: var(--sp-2);">
+                                ${typeIcon} ${goal.name}
+                            </h3>
+                            <span class="badge ${badgeClass}">${goal.priority}</span>
+                        </div>
+                        <div class="d-flex gap-4 mt-2" style="flex-wrap: wrap;">
+                            <div>
+                                <span class="caption">Target</span>
+                                <p style="margin:0; color: var(--text-primary); font-weight: 600;">${goal.targetTime} min/day</p>
+                            </div>
+                            <div>
+                                <span class="caption">Total Time</span>
+                                <p style="margin:0; color: var(--primary-light); font-weight: 600;">${totalTime} min</p>
+                            </div>
+                            <div>
+                                <span class="caption">Days Done</span>
+                                <p style="margin:0; color: var(--success-light); font-weight: 600;">${daysCompleted}</p>
+                            </div>
+                        </div>
+                        ${daysCompleted > 0 ? `
+                        <div class="mt-3">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, (daysCompleted / 30) * 100)}%"></div>
+                            </div>
+                            <span class="caption mt-1 d-block">${daysCompleted}/30 day streak</span>
+                        </div>
+                        ` : ''}
+                        <div class="d-flex gap-2 mt-3">
+                            <button onclick="deleteGoal('${goal._id}')" class="btn btn-danger btn-sm">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         async function createGoal(e) {
@@ -169,14 +180,14 @@
                 });
 
                 if (response.ok) {
-                    showMessage('✅ Goal created successfully!', 'success');
+                    showToast('✅ Goal created successfully!', 'success');
                     document.getElementById('goal-form').reset();
                     await loadGoals();
                 } else {
-                    showMessage('❌ Failed to create goal', 'error');
+                    showToast('❌ Failed to create goal', 'error');
                 }
             } catch (error) {
-                showMessage('❌ Network error', 'error');
+                showToast('❌ Network error', 'error');
             }
         }
 
@@ -190,19 +201,11 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                showMessage('🗑️ Goal deleted', 'info');
+                showToast('🗑️ Goal deleted', 'info');
                 await loadGoals();
             } catch (error) {
                 console.error('Delete error:', error);
             }
-        }
-
-        function showMessage(message, type = 'info') {
-            const container = document.getElementById('message-container');
-            const className = type === 'success' ? 'badge-success' :
-                type === 'error' ? 'badge-error' : 'badge-info';
-            container.innerHTML = `<div class="badge ${className}">${message}</div>`;
-            setTimeout(() => container.innerHTML = '', 3000);
         }
 
         document.getElementById('goal-form').addEventListener('submit', createGoal);

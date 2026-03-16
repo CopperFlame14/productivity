@@ -1,66 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Gamified Productivity Tracker</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <style>
-    .login-container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .login-card {
-      max-width: 450px;
-      width: 100%;
-    }
-    .logo {
-      text-align: center;
-      margin-bottom: 2rem;
-      font-size: 3rem;
-    }
-    .error-message {
-      background: rgba(248, 113, 113, 0.2);
-      border: 1px solid var(--color-error);
-      color: var(--color-error);
-      padding: 1rem;
-      border-radius: var(--radius-md);
-      margin-bottom: 1rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="login-container">
-    <div class="login-card card">
-      <div class="logo">🎮</div>
-      <h1 class="text-center">Gamified Productivity Tracker</h1>
-      <p class="text-center text-muted mb-3">Level up your productivity</p>
-      
-      <div id="error-container"></div>
-      
-      <form id="login-form">
-        <div class="form-group">
-          <label class="form-label" for="email">Email</label>
-          <input type="email" id="email" class="form-input" required placeholder="your@email.com">
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label" for="password">Password</label>
-          <input type="password" id="password" class="form-input" required placeholder="••••••••">
-        </div>
-        
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
-      </form>
-      
-      <p class="text-center mt-3">
-        Don't have an account? <a href="/signup.html">Sign up</a>
-      </p>
-    </div>
-  </div>
 
-  <script src="/js/auth.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — ProQuest | Gamified Productivity</title>
+    <meta name="description" content="Level up your productivity with gamification. Track tasks, earn XP, unlock rewards.">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-card card">
+            <div class="auth-brand">
+                <div class="auth-brand-icon">⚡</div>
+                <h1 class="auth-title">Welcome Back</h1>
+                <p class="auth-subtitle">Sign in to continue your productivity journey</p>
+            </div>
+
+            <div id="error-container"></div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" required placeholder="you@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" required placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Sign In</button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="/signup.html">Create one</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
 </body>
+
 </html>
