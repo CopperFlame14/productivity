@@ -1,190 +1,108 @@
 # 🎮 Gamified Productivity Tracker
 
-A game-like productivity dashboard combining task tracking, rewards, analytics, and wellness monitoring with full backend authentication.
+A full-stack productivity tracker that turns daily routines into quests. Track study, projects, workouts, LeetCode practice and hydration; earn XP and unlock rewards while reviewing your progress.
 
 ## Features
 
-- ✅ **Daily Task System**: Track workout, LeetCode, projects, study, and water intake
-- 🎥 **Anime Reward System**: Unlock episodes by completing tasks
-- 🧠 **LeetCode Auto-Detection**: Automatic problem detection with graceful fallback
-- 📊 **Data Science Productivity Engine**: Weighted scoring, 7-day averages, rank system
-- 🔥 **Streak Tracking**: Increase score multipliers with consistency
-- ❤️ **Health Meter (HP)**: Wellness tracking with penalties
-- ⚡ **XP & Leveling**: Gain XP and level up for bonus rewards
-- 🎯 **Custom Goals & Hobbies**: Personalized task management
-- 🧬 **Burnout Detection**: Wellness monitoring and warnings
-- 🏅 **Achievements**: Unlockable badges
-- 🔐 **User Authentication**: Secure JWT-based auth with MongoDB
-- ☁️ **Cloud Sync**: Access your data across devices
+- Daily task tracking for workouts, study, projects, LeetCode and water
+- XP, levels, ranks and consistency streaks
+- Anime episode rewards and achievements
+- Custom goals and hobby tracking
+- Productivity analytics and wellness indicators
+- Optional LeetCode progress integration
+- JWT authentication and MongoDB cloud sync
 
-## Technology Stack
+## Tech stack
 
-**Backend:**
-- Node.js + Express
-- MongoDB + Mongoose
-- JWT Authentication
-- bcryptjs for password hashing
+- **Backend:** Node.js, Express, MongoDB, Mongoose
+- **Authentication:** JWT and bcryptjs
+- **Frontend:** HTML, CSS and vanilla JavaScript
+- **Testing:** Node.js built-in test runner
 
-**Frontend:**
-- HTML5, CSS3, JavaScript (Vanilla)
-- Modern dark theme design
-- Responsive mobile-first layout
-
-## Installation
+## Run locally
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB (local or cloud)
+
+- Node.js 18 or later
+- MongoDB locally or a MongoDB Atlas connection
 
 ### Setup
 
-1. **Clone or navigate to the project directory**
-   ```bash
-   cd c:\Users\krish\Documents\web\productivity
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   - Copy `.env.example` to `.env`
-   - Update MongoDB connection string if needed
-   - Change JWT secret in production
-
-4. **Start MongoDB**
-   - If using local MongoDB:
-     ```bash
-     mongod
-     ```
-   - Or use MongoDB Atlas (cloud)
-
-5. **Start the server**
-   ```bash
-   npm start
-   ```
-   
-   For development with auto-restart:
-   ```bash
-   npm run dev
-   ```
-
-6. **Open the application**
-   - Navigate to `http://localhost:3000`
-   - Create an account and start tracking!
-
-## Project Structure
-
-```
-productivity/
-├── server.js              # Express server
-├── package.json           # Dependencies
-├── .env                   # Environment variables
-├── config/
-│   └── db.js             # MongoDB connection
-├── middleware/
-│   └── auth.js           # JWT authentication
-├── models/
-│   ├── User.js           # User schema
-│   ├── DailyRecord.js    # Daily tracking
-│   ├── Goal.js           # Custom goals
-│   └── Achievement.js    # Achievements
-├── routes/
-│   ├── auth.js           # Authentication
-│   ├── user.js           # User management
-│   ├── daily.js          # Daily records
-│   ├── goals.js          # Goals CRUD
-│   ├── anime.js          # Anime rewards
-│   ├── analytics.js      # Analytics
-│   └── leetcode.js       # LeetCode integration
-├── utils/
-│   ├── calculations.js   # Game mechanics
-│   └── leetcode.js       # LeetCode API
-└── public/
-    ├── index.html        # Login page
-    ├── signup.html       # Signup page
-    ├── dashboard.html    # Main dashboard
-    ├── anime.html        # Anime rewards
-    ├── css/
-    │   ├── styles.css          # Main styles
-    │   └── leetcode-panel.css  # LeetCode panel
-    └── js/
-        ├── auth.js             # Authentication
-        ├── dashboard.js        # Dashboard logic
-        ├── anime.js            # Anime rewards
-        └── leetcode-panel.js   # LeetCode panel
+```bash
+git clone https://github.com/CopperFlame14/productivity.git
+cd productivity
+npm install
 ```
 
-## API Documentation
+Copy the example environment file and configure it:
 
-### Authentication
-- `POST /api/auth/signup` - Create account
-- `POST /api/auth/login` - Login
-- `POST /api/auth/logout` - Logout
+```bash
+cp .env.example .env
+```
 
-### User
-- `GET /api/user` - Get profile
-- `PUT /api/user` - Update profile
-- `DELETE /api/user` - Delete account
+On Windows PowerShell, use `Copy-Item .env.example .env`.
 
-### Daily Records
-- `POST /api/daily` - Save daily record
-- `GET /api/daily` - Get today's record
-- `GET /api/daily/history?days=30` - Get history
-- `POST /api/daily/reset` - Reset tasks
+Set at least these values in `.env`:
 
-### Goals
-- `POST /api/goals` - Create goal
-- `GET /api/goals` - Get all goals
-- `PUT /api/goals/:id` - Update goal
-- `DELETE /api/goals/:id` - Delete goal
-- `POST /api/goals/schedule` - Calculate smart schedule
+- `MONGODB_URI`: your MongoDB connection string
+- `JWT_SECRET`: a long, random secret (never commit this value)
+- `JWT_EXPIRE`: token lifetime, for example `7d`
+- `PORT`: server port, default `3000`
+- `CLIENT_URL`: comma-separated list of trusted browser origins, for example `http://localhost:3000`
 
-### Anime
-- `GET /api/anime/balance` - Get episode balance
-- `POST /api/anime/watch` - Watch episode
-- `GET /api/anime/history` - Watch history
+Start the application:
 
-### LeetCode
-- `POST /api/leetcode/check` - Check for new problems
-- `POST /api/leetcode/validate` - Validate username
-- `PUT /api/leetcode/settings` - Update settings
-- `GET /api/leetcode/settings` - Get settings
+```bash
+npm start
+```
 
-### Analytics
-- `GET /api/analytics/productivity` - Productivity trends
-- `GET /api/analytics/streak` - Streak data
-- `GET /api/analytics/achievements` - Achievements
+Open http://localhost:3000 and create an account. For development with automatic restarts, run `npm run dev`.
 
-## Productivity Scoring
+## Tests
 
-**Target Values:**
-- Workout: 20 minutes
-- LeetCode: 1 problem
-- Project: 30 minutes
-- Study: 20 minutes
-- Water: 8 glasses
+Run the unit tests with:
 
-**Weights:**
-- Workout: 20%
-- LeetCode: 25%
-- Project: 25%
-- Study: 20%
-- Water: 10%
+```bash
+npm test
+```
 
-**Rank System:**
-- S: 90-100 (Gold)
-- A: 75-89 (Silver)
-- B: 50-74 (Bronze)
-- C: <50 (Gray)
+The test suite uses Node's built-in test runner and does not require a database.
 
-**Streak Multipliers:**
-- 3+ days: 1.05x
-- 7+ days: 1.10x
-- 14+ days: 1.15x
+## Project structure
+
+```text
+config/       MongoDB connection
+docs/         Deployment and integration guides
+middleware/   Authentication middleware
+models/       Mongoose data models
+public/       HTML, CSS and browser JavaScript
+routes/       Express API routes
+utils/        Productivity and integration logic
+test/         Automated tests
+```
+
+## API overview
+
+All endpoints except signup and login require a bearer token.
+
+| Area | Endpoints |
+|---|---|
+| Authentication | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout` |
+| User | `GET/PUT/DELETE /api/user` |
+| Daily records | `GET/POST /api/daily`, `GET /api/daily/history`, `POST /api/daily/reset` |
+| Goals | `GET/POST /api/goals`, `PUT/DELETE /api/goals/:id`, `POST /api/goals/schedule` |
+| Anime rewards | `GET /api/anime/balance`, `POST /api/anime/watch`, `GET /api/anime/history` |
+| LeetCode | `POST /api/leetcode/check`, `POST /api/leetcode/validate`, `GET/PUT /api/leetcode/settings` |
+| Analytics | `GET /api/analytics/productivity`, `GET /api/analytics/streak`, `GET /api/analytics/achievements` |
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Look for issues labelled `good first issue` or `help wanted`.
+
+## Security
+
+Never commit `.env`, credentials, access tokens or personal data. Report suspected vulnerabilities privately to the repository maintainer rather than opening a public issue.
 
 ## License
 
-MIT
-"# productivity" 
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
