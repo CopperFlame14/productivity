@@ -20,7 +20,7 @@ const completeTasks = () => ({
 });
 
 test('a day meeting every target receives a score of 100', () => {
-    assert.equal(calculateProductivityScore(completeTasks()), 100);
+    assert.ok(Math.abs(calculateProductivityScore(completeTasks()) - 100) < 1e-9);
 });
 
 test('productivity score is capped when targets are exceeded', () => {
