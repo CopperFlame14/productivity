@@ -8,11 +8,13 @@ const {
 
 function isConsecutiveDay(previousDate, currentDate) {
     if (!previousDate || !currentDate) return false;
-    const expected = new Date(previousDate);
+    const previous = new Date(previousDate);
+    const current = new Date(currentDate);
+    const expected = new Date(previous);
     expected.setDate(expected.getDate() + 1);
-    return expected.getFullYear() === currentDate.getFullYear() &&
-        expected.getMonth() === currentDate.getMonth() &&
-        expected.getDate() === currentDate.getDate();
+    return expected.getFullYear() === current.getFullYear() &&
+        expected.getMonth() === current.getMonth() &&
+        expected.getDate() === current.getDate();
 }
 
 function allCoreTasksCompleted(tasks = {}) {
@@ -20,12 +22,17 @@ function allCoreTasksCompleted(tasks = {}) {
         .every(name => tasks[name]?.completed === true);
 }
 
+function calendarDayNumber(value) {
+    const date = new Date(value);
+    return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+}
+
 /**
  * Rebuild derived user totals and daily streak/XP/reward snapshots from
- * chronological daily records. Anime episodes already watched are an
- * independent user action and are deliberately left unchanged.
+ * chronological daily records. The asOfDate argument makes current-streak
+ * behaviour deterministic in tests and production.
  */
-function recalculateDailyStats(records, watchedEpisodes = 0) {
+function recalculateDailyStats(records, watchedEpisodes = 0, asOfDate = new Date()) {
     const ordered = [...records].sort((a, b) => new Date(a.date) - new Date(b.date));
     let totalXP = 0;
     let totalUnlocked = 0;
@@ -80,13 +87,24 @@ function recalculateDailyStats(records, watchedEpisodes = 0) {
         previousRecord = record;
     }
 
+    const lastRecord = ordered[ordered.length - 1];
+    const daysSinceLastRecord = lastRecord
+        ? calendarDayNumber(asOfDate) - calendarDayNumber(lastRecord.date)
+        : Infinity;
+    const currentStreak = daysSinceLastRecord >= 0 && daysSinceLastRecord <= 1
+        ? lastRecord.streak.current
+        : 0;
+    const safeWatchedEpisodes = Math.max(0, Number.isFinite(watchedEpisodes) ? watchedEpisodes : 0);
+
     return {
         totalXP,
         level: calculateLevel(totalXP),
-        currentStreak: ordered.length ? ordered[ordered.length - 1].streak.current : 0,
+        currentStreak,
         bestStreak,
-        animeEpisodesUnlocked: totalUnlocked,
-        animeEpisodesWatched: watchedEpisodes || 0
+        // Never make already-watched episodes exceed the unlocked balance
+        // after a historical edit or reset causes rewards to be recalculated.
+        animeEpisodesUnlocked: Math.max(totalUnlocked, safeWatchedEpisodes),
+        animeEpisodesWatched: safeWatchedEpisodes
     };
 }
 
