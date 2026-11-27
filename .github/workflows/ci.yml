@@ -36,9 +36,15 @@ jobs:
 
       - name: Initialize MongoDB replica set
         run: |
-          mongosh "mongodb://localhost:27017/admin" --quiet --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})'
+          mongo_container="$(docker ps -q --filter "ancestor=mongo:7" | head -n 1)"
+          if [ -z "$mongo_container" ]; then
+            echo "MongoDB service container was not found"
+            exit 1
+          fi
+          docker exec "$mongo_container" mongosh --quiet --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})'
           for attempt in {1..30}; do
-            if mongosh "mongodb://localhost:27017/admin?directConnection=true" --quiet --eval 'rs.status().myState' | grep -q 1; then
+            state="$(docker exec "$mongo_container" mongosh --quiet --eval 'rs.status().myState' 2>/dev/null || true)"
+            if [ "$state" = "1" ]; then
               echo "MongoDB replica set is ready"
               exit 0
             fi
