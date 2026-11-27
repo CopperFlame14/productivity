@@ -25,11 +25,24 @@ router.post('/', async (req, res) => {
         const recordDate = date ? new Date(date) : new Date();
         recordDate.setHours(0, 0, 0, 0);
 
-        // Find existing record for this date
+        if (Number.isNaN(recordDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid date supplied' });
+        }
+
+        if (!tasks || typeof tasks !== 'object') {
+            return res.status(400).json({ error: 'Task data is required' });
+        }
+
+        // Find the existing record so updates apply reward deltas rather than
+        // awarding the same day's XP and episodes again.
         let record = await DailyRecord.findOne({
             user: req.user.id,
             date: recordDate
         });
+        const previousXpEarned = record?.xp?.earned || 0;
+        const previousAnimeUnlocked = record?.anime?.totalUnlocked || 0;
+        const previousAnimeWatched = record?.anime?.watched || 0;
+        const previousPenaltyApplied = record?.anime?.penaltyApplied || false;
 
         if (!record) {
             record = new DailyRecord({
@@ -61,21 +74,24 @@ router.post('/', async (req, res) => {
         // Check if all core tasks completed
         const allCompleted = record.allCoreTasksCompleted();
 
-        // Get current streak from user
         const user = await User.findById(req.user.id);
-        let currentStreak = user.stats.currentStreak;
-
-        // Update streak
-        if (allCompleted) {
-            currentStreak += 1;
-            user.stats.currentStreak = currentStreak;
-            if (currentStreak > user.stats.bestStreak) {
-                user.stats.bestStreak = currentStreak;
-            }
-        } else {
-            currentStreak = 0;
-            user.stats.currentStreak = 0;
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
         }
+
+        // Recompute today's streak from yesterday's saved record. Re-saving
+        // the same date therefore cannot increment the streak repeatedly.
+        const previousDate = new Date(recordDate);
+        previousDate.setDate(previousDate.getDate() - 1);
+        const previousRecord = await DailyRecord.findOne({
+            user: req.user.id,
+            date: previousDate
+        }).select('streak.current');
+        const currentStreak = allCompleted
+            ? (previousRecord?.streak?.current || 0) + 1
+            : 0;
+        user.stats.currentStreak = currentStreak;
+        user.stats.bestStreak = Math.max(user.stats.bestStreak || 0, currentStreak);
 
         // Calculate final score with streak multiplier
         const finalScore = calculateFinalScore(rawScore, currentStreak, bonus);
@@ -83,7 +99,12 @@ router.post('/', async (req, res) => {
 
         // Calculate XP
         const xpEarned = calculateXP(finalScore);
-        user.stats.totalXP += xpEarned;
+        // Replace this record's previous contribution instead of adding it
+        // again every time the user edits and saves today's tasks.
+        user.stats.totalXP = Math.max(
+            0,
+            (user.stats.totalXP || 0) - previousXpEarned + xpEarned
+        );
         const level = calculateLevel(user.stats.totalXP);
         user.stats.level = level;
 
@@ -101,8 +122,13 @@ router.post('/', async (req, res) => {
         }
         animeRewards.totalUnlocked = animeRewards.baseEpisodes + animeRewards.bonusEpisodes;
 
-        // Update user anime balance
-        user.stats.animeEpisodesUnlocked += animeRewards.totalUnlocked;
+        // Replace this record's previous episode contribution.
+        user.stats.animeEpisodesUnlocked = Math.max(
+            0,
+            (user.stats.animeEpisodesUnlocked || 0) -
+                previousAnimeUnlocked +
+                animeRewards.totalUnlocked
+        );
 
         // Update record
         record.scores = {
@@ -125,8 +151,8 @@ router.post('/', async (req, res) => {
             baseEpisodes: animeRewards.baseEpisodes,
             bonusEpisodes: animeRewards.bonusEpisodes,
             totalUnlocked: animeRewards.totalUnlocked,
-            watched: 0,
-            penaltyApplied: false
+            watched: previousAnimeWatched,
+            penaltyApplied: previousPenaltyApplied
         };
 
         await record.save();
