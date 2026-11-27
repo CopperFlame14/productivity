@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { isValidEpisodeCount } = require('../utils/anime');
 
 /**
  * GET /api/anime/balance
@@ -37,7 +38,7 @@ router.post('/watch', async (req, res) => {
     try {
         const episodes = req.body?.episodes === undefined ? 1 : req.body.episodes;
 
-        if (!Number.isSafeInteger(episodes) || episodes <= 0) {
+        if (!isValidEpisodeCount(episodes)) {
             return res.status(400).json({
                 error: 'Episodes must be a positive whole number'
             });
