@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const DailyRecord = require('../models/DailyRecord');
 const User = require('../models/User');
@@ -42,74 +43,76 @@ function defaultTasks() {
     };
 }
 
-async function rebuildUserStats(userId, user) {
-    const records = await DailyRecord.find({ user: userId }).sort({ date: 1 });
+async function rebuildUserStats(userId, user, session) {
+    const records = await DailyRecord.find({ user: userId })
+        .sort({ date: 1 })
+        .session(session);
     const scores = [];
 
     for (const record of records) {
         const rawScore = calculateProductivityScore(record.tasks);
-        const { average, bonus } = calculateSevenDayAverage([...scores.slice(-6), rawScore]);
+        const { average } = calculateSevenDayAverage([...scores.slice(-6), rawScore]);
         record.scores = {
             ...record.scores.toObject(),
             rawScore,
             sevenDayAverage: average
         };
-        // The helper recomputes final score, streak, XP, levels and rewards.
         scores.push(rawScore);
     }
 
     const totals = recalculateDailyStats(records, user.stats.animeEpisodesWatched || 0);
-    for (const record of records) await record.save();
+    for (const record of records) await record.save({ session });
 
     user.stats.totalXP = totals.totalXP;
     user.stats.level = totals.level;
     user.stats.currentStreak = totals.currentStreak;
     user.stats.bestStreak = totals.bestStreak;
     user.stats.animeEpisodesUnlocked = totals.animeEpisodesUnlocked;
-    await user.save();
+    await user.save({ session });
     return records;
 }
 
 /**
  * POST /api/daily
- * Save or update a daily record and rebuild derived totals chronologically.
+ * Save a daily record and rebuild its derived stats atomically.
  */
 router.post('/', async (req, res) => {
+    if (!req.body.tasks || typeof req.body.tasks !== 'object' || Array.isArray(req.body.tasks)) {
+        return res.status(400).json({ error: 'Task data is required' });
+    }
+
+    const recordDate = parseRecordDate(req.body.date);
+    if (!recordDate) {
+        return res.status(400).json({ error: 'Invalid date supplied' });
+    }
+
+    const session = await mongoose.startSession();
+    let responseRecord;
+
     try {
-        const { tasks, date } = req.body;
-        const recordDate = parseRecordDate(date);
+        await session.withTransaction(async () => {
+            const user = await User.findById(req.user.id).session(session);
+            if (!user) {
+                const error = new Error('User not found');
+                error.status = 404;
+                throw error;
+            }
 
-        if (!recordDate) {
-            return res.status(400).json({ error: 'Invalid date supplied' });
-        }
-        if (!tasks || typeof tasks !== 'object' || Array.isArray(tasks)) {
-            return res.status(400).json({ error: 'Task data is required' });
-        }
+            const record = await DailyRecord.findOneAndUpdate(
+                { user: req.user.id, date: recordDate },
+                {
+                    $set: {
+                        tasks: req.body.tasks,
+                        hp: calculateHP(req.body.tasks),
+                        'scores.rawScore': calculateProductivityScore(req.body.tasks)
+                    }
+                },
+                { new: true, upsert: true, setDefaultsOnInsert: true, session }
+            );
 
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-
-        let record = await DailyRecord.findOne({ user: req.user.id, date: recordDate });
-        if (!record) {
-            record = new DailyRecord({ user: req.user.id, date: recordDate, tasks });
-        } else {
-            record.tasks = tasks;
-        }
-
-        record.scores = {
-            ...record.scores.toObject(),
-            rawScore: calculateProductivityScore(tasks)
-        };
-        record.hp = calculateHP(tasks);
-        await record.save();
-
-        const records = await rebuildUserStats(req.user.id, user);
-        const saved = records.find(item => item._id.equals(record._id)) || record;
-
-        res.json({
-            success: true,
-            message: 'Daily record saved',
-            record: {
+            const records = await rebuildUserStats(req.user.id, user, session);
+            const saved = records.find(item => item._id.equals(record._id)) || record;
+            responseRecord = {
                 id: saved._id,
                 date: saved.date,
                 tasks: saved.tasks,
@@ -118,26 +121,36 @@ router.post('/', async (req, res) => {
                 hp: saved.hp,
                 xp: saved.xp,
                 anime: saved.anime
-            }
+            };
+        });
+
+        res.json({
+            success: true,
+            message: 'Daily record saved',
+            record: responseRecord
         });
     } catch (error) {
         console.error('Save daily record error:', error);
-        res.status(500).json({ error: 'Failed to save daily record' });
+        res.status(error.status || 500).json({
+            error: error.status === 404 ? 'User not found' : 'Failed to save daily record'
+        });
+    } finally {
+        await session.endSession();
     }
 });
 
 /**
  * GET /api/daily
- * Get today's record.
+ * Get today's record, creating it only once under the unique index.
  */
 router.get('/', async (req, res) => {
     try {
         const today = parseRecordDate();
-        let record = await DailyRecord.findOne({ user: req.user.id, date: today });
-        if (!record) {
-            record = new DailyRecord({ user: req.user.id, date: today });
-            await record.save();
-        }
+        const record = await DailyRecord.findOneAndUpdate(
+            { user: req.user.id, date: today },
+            { $setOnInsert: { user: req.user.id, date: today } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
         res.json(record);
     } catch (error) {
         console.error('Get daily record error:', error);
@@ -167,26 +180,38 @@ router.get('/history', async (req, res) => {
 
 /**
  * POST /api/daily/reset
- * Reset today's tasks and rebuild derived rewards and stats.
+ * Reset today's tasks and derived stats atomically.
  */
 router.post('/reset', async (req, res) => {
-    try {
-        const today = parseRecordDate();
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+    const today = parseRecordDate();
+    const session = await mongoose.startSession();
 
-        const record = await DailyRecord.findOne({ user: req.user.id, date: today });
-        if (record) {
-            record.tasks = defaultTasks();
-            record.hp = 70;
-            await record.save();
-            await rebuildUserStats(req.user.id, user);
-        }
+    try {
+        await session.withTransaction(async () => {
+            const user = await User.findById(req.user.id).session(session);
+            if (!user) {
+                const error = new Error('User not found');
+                error.status = 404;
+                throw error;
+            }
+
+            const record = await DailyRecord.findOne({ user: req.user.id, date: today }).session(session);
+            if (record) {
+                record.tasks = defaultTasks();
+                record.hp = calculateHP(record.tasks);
+                await record.save({ session });
+                await rebuildUserStats(req.user.id, user, session);
+            }
+        });
 
         res.json({ success: true, message: 'Tasks reset successfully' });
     } catch (error) {
         console.error('Reset tasks error:', error);
-        res.status(500).json({ error: 'Failed to reset tasks' });
+        res.status(error.status || 500).json({
+            error: error.status === 404 ? 'User not found' : 'Failed to reset tasks'
+        });
+    } finally {
+        await session.endSession();
     }
 });
 
