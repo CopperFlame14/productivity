@@ -18,7 +18,21 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(cors());
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin(origin, callback) {
+        // Requests without an Origin header include same-origin and local
+        // tooling requests; browser cross-origin requests must be allowlisted.
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('Origin is not allowed by CORS'));
+    }
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/', limiter);

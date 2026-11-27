@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { isValidEpisodeCount } = require('../utils/anime');
 
 /**
  * GET /api/anime/balance
- * Get current anime episode balance
+ * Get current anime episode balance.
  */
 router.get('/balance', async (req, res) => {
     try {
@@ -30,42 +31,58 @@ router.get('/balance', async (req, res) => {
 
 /**
  * POST /api/anime/watch
- * Record watched episode with validation
+ * Record watched episodes without allowing invalid counts or concurrent
+ * requests to spend the same unlocked episode balance more than once.
  */
 router.post('/watch', async (req, res) => {
     try {
-        const { episodes = 1 } = req.body;
+        const episodes = req.body?.episodes === undefined ? 1 : req.body.episodes;
 
-        const user = await User.findById(req.user.id);
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const { animeEpisodesUnlocked, animeEpisodesWatched } = user.stats;
-        const remaining = animeEpisodesUnlocked - animeEpisodesWatched;
-
-        // Validate: can't watch more than unlocked
-        if (episodes > remaining) {
+        if (!isValidEpisodeCount(episodes)) {
             return res.status(400).json({
-                error: 'Not enough episodes unlocked',
-                unlocked: animeEpisodesUnlocked,
-                watched: animeEpisodesWatched,
-                remaining,
-                requested: episodes
+                error: 'Episodes must be a positive whole number'
             });
         }
 
-        // Update watched count
-        user.stats.animeEpisodesWatched += episodes;
-        await user.save();
+        const user = await User.findOneAndUpdate(
+            {
+                _id: req.user.id,
+                $expr: {
+                    $lte: [
+                        { $add: [{ $ifNull: ['$stats.animeEpisodesWatched', 0] }, episodes] },
+                        { $ifNull: ['$stats.animeEpisodesUnlocked', 0] }
+                    ]
+                }
+            },
+            { $inc: { 'stats.animeEpisodesWatched': episodes } },
+            { new: true }
+        );
 
-        res.json({
-            success: true,
-            message: `${episodes} episode(s) watched`,
-            unlocked: user.stats.animeEpisodesUnlocked,
-            watched: user.stats.animeEpisodesWatched,
-            remaining: user.stats.animeEpisodesUnlocked - user.stats.animeEpisodesWatched
+        if (user) {
+            return res.json({
+                success: true,
+                message: `${episodes} episode(s) watched`,
+                unlocked: user.stats.animeEpisodesUnlocked,
+                watched: user.stats.animeEpisodesWatched,
+                remaining: Math.max(0, user.stats.animeEpisodesUnlocked - user.stats.animeEpisodesWatched)
+            });
+        }
+
+        const existingUser = await User.findById(req.user.id);
+        if (!existingUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const remaining = Math.max(
+            0,
+            existingUser.stats.animeEpisodesUnlocked - existingUser.stats.animeEpisodesWatched
+        );
+        return res.status(400).json({
+            error: 'Not enough episodes unlocked',
+            unlocked: existingUser.stats.animeEpisodesUnlocked,
+            watched: existingUser.stats.animeEpisodesWatched,
+            remaining,
+            requested: episodes
         });
     } catch (error) {
         console.error('Watch anime error:', error);
@@ -75,7 +92,7 @@ router.post('/watch', async (req, res) => {
 
 /**
  * GET /api/anime/history
- * Get anime watch history from daily records
+ * Get anime watch history from daily records.
  */
 router.get('/history', async (req, res) => {
     try {

@@ -1,180 +1,156 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const DailyRecord = require('../models/DailyRecord');
 const User = require('../models/User');
 const {
     calculateProductivityScore,
     calculateSevenDayAverage,
-    calculateFinalScore,
-    getRank,
-    calculateXP,
-    calculateLevel,
-    calculateHP,
-    calculateAnimeRewards
+    calculateHP
 } = require('../utils/calculations');
+const { recalculateDailyStats } = require('../utils/dailyStats');
+
+function parseRecordDate(value) {
+    if (!value) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today;
+    }
+
+    // Treat YYYY-MM-DD as a calendar date, not as a UTC timestamp.
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        const parsed = new Date(year, month - 1, day);
+        if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) {
+            return null;
+        }
+        return parsed;
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+}
+
+function defaultTasks() {
+    return {
+        workout: { completed: false, minutes: 0, bonusMinutes: 0 },
+        leetcode: { completed: false, problemsSolved: 0, bonusProblems: 0 },
+        project: { completed: false, minutes: 0, bonusMinutes: 0 },
+        study: { completed: false, minutes: 0, bonusMinutes: 0 },
+        water: { completed: false, glasses: 0 }
+    };
+}
+
+async function rebuildUserStats(userId, user, session) {
+    const records = await DailyRecord.find({ user: userId })
+        .sort({ date: 1 })
+        .session(session);
+    const scores = [];
+
+    for (const record of records) {
+        const rawScore = calculateProductivityScore(record.tasks);
+        const { average } = calculateSevenDayAverage([...scores.slice(-6), rawScore]);
+        record.scores = {
+            ...record.scores.toObject(),
+            rawScore,
+            sevenDayAverage: average
+        };
+        scores.push(rawScore);
+    }
+
+    const totals = recalculateDailyStats(records, user.stats.animeEpisodesWatched || 0);
+    for (const record of records) await record.save({ session });
+
+    user.stats.totalXP = totals.totalXP;
+    user.stats.level = totals.level;
+    user.stats.currentStreak = totals.currentStreak;
+    user.stats.bestStreak = totals.bestStreak;
+    user.stats.animeEpisodesUnlocked = totals.animeEpisodesUnlocked;
+    await user.save({ session });
+    return records;
+}
 
 /**
  * POST /api/daily
- * Save or update daily record with automatic calculations
+ * Save a daily record and rebuild its derived stats atomically.
  */
 router.post('/', async (req, res) => {
+    if (!req.body.tasks || typeof req.body.tasks !== 'object' || Array.isArray(req.body.tasks)) {
+        return res.status(400).json({ error: 'Task data is required' });
+    }
+
+    const recordDate = parseRecordDate(req.body.date);
+    if (!recordDate) {
+        return res.status(400).json({ error: 'Invalid date supplied' });
+    }
+
+    const session = await mongoose.startSession();
+    let responseRecord;
+
     try {
-        const { tasks, date } = req.body;
-
-        // Use provided date or today
-        const recordDate = date ? new Date(date) : new Date();
-        recordDate.setHours(0, 0, 0, 0);
-
-        // Find existing record for this date
-        let record = await DailyRecord.findOne({
-            user: req.user.id,
-            date: recordDate
-        });
-
-        if (!record) {
-            record = new DailyRecord({
-                user: req.user.id,
-                date: recordDate,
-                tasks
-            });
-        } else {
-            record.tasks = tasks;
-        }
-
-        // Calculate productivity score
-        const rawScore = calculateProductivityScore(tasks);
-
-        // Get recent scores for 7-day average
-        const recentRecords = await DailyRecord.find({
-            user: req.user.id,
-            date: { $lt: recordDate }
-        })
-            .sort({ date: -1 })
-            .limit(6)
-            .select('scores.rawScore');
-
-        const recentScores = recentRecords.map(r => r.scores.rawScore);
-        recentScores.push(rawScore);
-
-        const { average, bonus } = calculateSevenDayAverage(recentScores);
-
-        // Check if all core tasks completed
-        const allCompleted = record.allCoreTasksCompleted();
-
-        // Get current streak from user
-        const user = await User.findById(req.user.id);
-        let currentStreak = user.stats.currentStreak;
-
-        // Update streak
-        if (allCompleted) {
-            currentStreak += 1;
-            user.stats.currentStreak = currentStreak;
-            if (currentStreak > user.stats.bestStreak) {
-                user.stats.bestStreak = currentStreak;
+        await session.withTransaction(async () => {
+            const user = await User.findById(req.user.id).session(session);
+            if (!user) {
+                const error = new Error('User not found');
+                error.status = 404;
+                throw error;
             }
-        } else {
-            currentStreak = 0;
-            user.stats.currentStreak = 0;
-        }
 
-        // Calculate final score with streak multiplier
-        const finalScore = calculateFinalScore(rawScore, currentStreak, bonus);
-        const rank = getRank(finalScore);
+            const record = await DailyRecord.findOneAndUpdate(
+                { user: req.user.id, date: recordDate },
+                {
+                    $set: {
+                        tasks: req.body.tasks,
+                        hp: calculateHP(req.body.tasks),
+                        'scores.rawScore': calculateProductivityScore(req.body.tasks)
+                    }
+                },
+                { new: true, upsert: true, setDefaultsOnInsert: true, session }
+            );
 
-        // Calculate XP
-        const xpEarned = calculateXP(finalScore);
-        user.stats.totalXP += xpEarned;
-        const level = calculateLevel(user.stats.totalXP);
-        user.stats.level = level;
-
-        // Calculate HP
-        const hp = calculateHP(tasks);
-
-        // Calculate anime rewards
-        const animeRewards = calculateAnimeRewards(tasks);
-
-        // Add level bonuses
-        if (level >= 10) {
-            animeRewards.bonusEpisodes += 1;
-        } else if (level >= 5) {
-            animeRewards.bonusEpisodes += 0.5;
-        }
-        animeRewards.totalUnlocked = animeRewards.baseEpisodes + animeRewards.bonusEpisodes;
-
-        // Update user anime balance
-        user.stats.animeEpisodesUnlocked += animeRewards.totalUnlocked;
-
-        // Update record
-        record.scores = {
-            rawScore,
-            finalScore,
-            sevenDayAverage: average,
-            rank
-        };
-        record.streak = {
-            current: currentStreak,
-            multiplier: calculateFinalScore(1, currentStreak, 0)
-        };
-        record.hp = hp;
-        record.xp = {
-            earned: xpEarned,
-            total: user.stats.totalXP,
-            level
-        };
-        record.anime = {
-            baseEpisodes: animeRewards.baseEpisodes,
-            bonusEpisodes: animeRewards.bonusEpisodes,
-            totalUnlocked: animeRewards.totalUnlocked,
-            watched: 0,
-            penaltyApplied: false
-        };
-
-        await record.save();
-        await user.save();
+            const records = await rebuildUserStats(req.user.id, user, session);
+            const saved = records.find(item => item._id.equals(record._id)) || record;
+            responseRecord = {
+                id: saved._id,
+                date: saved.date,
+                tasks: saved.tasks,
+                scores: saved.scores,
+                streak: saved.streak,
+                hp: saved.hp,
+                xp: saved.xp,
+                anime: saved.anime
+            };
+        });
 
         res.json({
             success: true,
             message: 'Daily record saved',
-            record: {
-                id: record._id,
-                date: record.date,
-                tasks: record.tasks,
-                scores: record.scores,
-                streak: record.streak,
-                hp: record.hp,
-                xp: record.xp,
-                anime: record.anime
-            }
+            record: responseRecord
         });
     } catch (error) {
         console.error('Save daily record error:', error);
-        res.status(500).json({ error: 'Failed to save daily record' });
+        res.status(error.status || 500).json({
+            error: error.status === 404 ? 'User not found' : 'Failed to save daily record'
+        });
+    } finally {
+        await session.endSession();
     }
 });
 
 /**
  * GET /api/daily
- * Get today's record
+ * Get today's record, creating it only once under the unique index.
  */
 router.get('/', async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        let record = await DailyRecord.findOne({
-            user: req.user.id,
-            date: today
-        });
-
-        if (!record) {
-            // Create empty record for today
-            record = new DailyRecord({
-                user: req.user.id,
-                date: today
-            });
-            await record.save();
-        }
-
+        const today = parseRecordDate();
+        const record = await DailyRecord.findOneAndUpdate(
+            { user: req.user.id, date: today },
+            { $setOnInsert: { user: req.user.id, date: today } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
         res.json(record);
     } catch (error) {
         console.error('Get daily record error:', error);
@@ -184,21 +160,17 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/daily/history
- * Get history of daily records
+ * Get history of daily records.
  */
 router.get('/history', async (req, res) => {
     try {
-        const { days = 30 } = req.query;
-
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(days));
-        startDate.setHours(0, 0, 0, 0);
-
+        const days = Math.max(1, Math.min(365, Number.parseInt(req.query.days, 10) || 30));
+        const startDate = parseRecordDate();
+        startDate.setDate(startDate.getDate() - days);
         const records = await DailyRecord.find({
             user: req.user.id,
             date: { $gte: startDate }
         }).sort({ date: -1 });
-
         res.json(records);
     } catch (error) {
         console.error('Get history error:', error);
@@ -208,37 +180,38 @@ router.get('/history', async (req, res) => {
 
 /**
  * POST /api/daily/reset
- * Reset today's tasks
+ * Reset today's tasks and derived stats atomically.
  */
 router.post('/reset', async (req, res) => {
+    const today = parseRecordDate();
+    const session = await mongoose.startSession();
+
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        await session.withTransaction(async () => {
+            const user = await User.findById(req.user.id).session(session);
+            if (!user) {
+                const error = new Error('User not found');
+                error.status = 404;
+                throw error;
+            }
 
-        const record = await DailyRecord.findOne({
-            user: req.user.id,
-            date: today
+            const record = await DailyRecord.findOne({ user: req.user.id, date: today }).session(session);
+            if (record) {
+                record.tasks = defaultTasks();
+                record.hp = calculateHP(record.tasks);
+                await record.save({ session });
+                await rebuildUserStats(req.user.id, user, session);
+            }
         });
 
-        if (record) {
-            // Reset all tasks
-            record.tasks = {
-                workout: { completed: false, minutes: 0, bonusMinutes: 0 },
-                leetcode: { completed: false, problemsSolved: 0, bonusProblems: 0 },
-                project: { completed: false, minutes: 0, bonusMinutes: 0 },
-                study: { completed: false, minutes: 0, bonusMinutes: 0 },
-                water: { completed: false, glasses: 0 }
-            };
-            await record.save();
-        }
-
-        res.json({
-            success: true,
-            message: 'Tasks reset successfully'
-        });
+        res.json({ success: true, message: 'Tasks reset successfully' });
     } catch (error) {
         console.error('Reset tasks error:', error);
-        res.status(500).json({ error: 'Failed to reset tasks' });
+        res.status(error.status || 500).json({
+            error: error.status === 404 ? 'User not found' : 'Failed to reset tasks'
+        });
+    } finally {
+        await session.endSession();
     }
 });
 

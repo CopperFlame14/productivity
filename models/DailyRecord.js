@@ -99,7 +99,10 @@ const dailyRecordSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Create compound index for efficient queries
+// One daily record per user and calendar date. Required to prevent concurrent
+// requests from creating duplicate records for the same day.
+dailyRecordSchema.index({ user: 1, date: 1 }, { unique: true });
+// Supports reverse-chronological history queries.
 dailyRecordSchema.index({ user: 1, date: -1 });
 
 // Method to check if all core tasks completed

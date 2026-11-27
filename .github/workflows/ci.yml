@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "chore/**", "fix/**", "feat/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: mongodb://localhost:27017/productivity_ci?replicaSet=rs0
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Report dependency audit findings
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node - <<'NODE'
+          const report = require('./npm-audit-report.json');
+          console.log('Dependency vulnerability summary:', JSON.stringify(report.metadata?.vulnerabilities || {}, null, 2));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log(JSON.stringify({
+              package: name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              fixAvailable: item.fixAvailable
+            }));
+          }
+          NODE
+
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name mongo-replica -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for attempt in {1..30}; do
+            if docker exec mongo-replica mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec mongo-replica mongosh --quiet --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})'
+          for attempt in {1..30}; do
+            state="$(docker exec mongo-replica mongosh --quiet --eval 'rs.status().myState' 2>/dev/null || true)"
+            if [ "$state" = "1" ]; then
+              echo "MongoDB replica set is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MongoDB replica set did not become ready"
+          exit 1
+
+      - name: Run unit and database integration tests
+        run: npm test
+
+      - name: Stop MongoDB
+        if: always()
+        run: docker rm -f mongo-replica || true
