@@ -4,7 +4,7 @@ Thank you for considering a contribution to Gamified Productivity Tracker!
 
 ## Before you start
 
-1. Read the README and the relevant documentation under `docs/`.
+1. Read the README and any relevant documentation available in the repository.
 2. Search existing issues and pull requests before opening a new one.
 3. For a substantial change, open an issue first to discuss the approach.
 4. If you are new to the project, look for `good first issue` labels.
