@@ -30,7 +30,7 @@ test('rebuilds streaks chronologically even when records arrive out of order', (
         record('2026-11-02', true)
     ];
 
-    const totals = recalculateDailyStats(records, 2);
+    const totals = recalculateDailyStats(records, 2, new Date('2026-11-03'));
     const ordered = [...records].sort((a, b) => a.date - b.date);
 
     assert.deepEqual(ordered.map(item => item.streak.current), [1, 2, 3]);
@@ -46,7 +46,7 @@ test('an edited historical day resets following streaks when the chain breaks', 
         record('2026-11-03', true)
     ];
 
-    const totals = recalculateDailyStats(records);
+    const totals = recalculateDailyStats(records, 0, new Date('2026-11-03'));
     assert.deepEqual(records.map(item => item.streak.current), [1, 0, 1]);
     assert.equal(totals.currentStreak, 1);
     assert.equal(totals.bestStreak, 1);
@@ -74,4 +74,27 @@ test('rebuilding repeatedly is idempotent and preserves watched episode count', 
     const second = recalculateDailyStats(records, 1);
 
     assert.deepEqual(second, first);
+});
+
+test('current streak expires when the latest completed record is older than yesterday', () => {
+    const records = [record('2026-11-01', true), record('2026-11-02', true)];
+    const totals = recalculateDailyStats(records, 0, new Date('2026-11-04'));
+
+    assert.equal(totals.currentStreak, 0);
+    assert.equal(totals.bestStreak, 2);
+});
+
+test('current streak remains active when the latest completed record was yesterday', () => {
+    const records = [record('2026-11-01', true), record('2026-11-02', true)];
+    const totals = recalculateDailyStats(records, 0, new Date('2026-11-03'));
+
+    assert.equal(totals.currentStreak, 2);
+});
+
+test('recalculation never makes watched episodes exceed unlocked episodes', () => {
+    const records = [record('2026-11-01', false)];
+    const totals = recalculateDailyStats(records, 3, new Date('2026-11-01'));
+
+    assert.equal(totals.animeEpisodesWatched, 3);
+    assert.equal(totals.animeEpisodesUnlocked, 3);
 });
