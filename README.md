@@ -24,7 +24,7 @@ A full-stack productivity tracker that turns daily routines into quests. Track s
 ### Prerequisites
 
 - Node.js 18 or later
-- MongoDB locally or a MongoDB Atlas connection
+- MongoDB running as a replica set (MongoDB Atlas is supported; standalone MongoDB does not support the transactions used by daily saves)
 
 ### Setup
 
@@ -42,7 +42,7 @@ cp .env.example .env
 
 On Windows PowerShell, use `Copy-Item .env.example .env`.
 
-Set at least these values in `.env`:
+**Database note:** daily task saves and resets use MongoDB transactions and require a replica-set deployment. Before enabling the unique daily-record index on an existing database, check for and resolve duplicate records with the same user and date; do not delete records without reviewing which data to retain.\n\nSet at least these values in `.env`:
 
 - `MONGODB_URI`: your MongoDB connection string
 - `JWT_SECRET`: a long, random secret (never commit this value)
