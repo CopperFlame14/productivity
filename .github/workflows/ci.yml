@@ -24,6 +24,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Report dependency audit findings
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node - <<'NODE'
+          const report = require('./npm-audit-report.json');
+          console.log('Dependency vulnerability summary:', JSON.stringify(report.metadata?.vulnerabilities || {}, null, 2));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log(JSON.stringify({
+              package: name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              fixAvailable: item.fixAvailable
+            }));
+          }
+          NODE
+
       - name: Start MongoDB replica set
         run: |
           docker run -d --name mongo-replica -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
