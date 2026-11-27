@@ -17,4 +17,4 @@ jobs:
         with:
           node-version: 20
       - name: Run unit tests
-        run: node --test test/calculations.test.js
+        run: npm test
