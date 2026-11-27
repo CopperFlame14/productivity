@@ -42,7 +42,9 @@ cp .env.example .env
 
 On Windows PowerShell, use `Copy-Item .env.example .env`.
 
-**Database note:** daily task saves and resets use MongoDB transactions and require a replica-set deployment. Before enabling the unique daily-record index on an existing database, check for duplicate records with `npm run check:daily-duplicates`. This read-only command prints duplicate groups and record IDs; review and resolve any duplicates manually before deploying the unique index. Do not delete records without reviewing which data to retain.\n\nSet at least these values in `.env`:
+**Database note:** daily task saves and resets use MongoDB transactions and require a replica-set deployment. Before enabling the unique daily-record index on an existing database, check for duplicate records with `npm run check:daily-duplicates`. This read-only command prints duplicate groups and record IDs; review and resolve any duplicates manually before deploying the unique index. Do not delete records without reviewing which data to retain.
+
+Set at least these values in `.env`:
 
 - `MONGODB_URI`: your MongoDB connection string
 - `JWT_SECRET`: a long, random secret (never commit this value)
