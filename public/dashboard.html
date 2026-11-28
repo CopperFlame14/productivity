@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,147 +10,248 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
-    <!-- Hero Section -->
-    <div class="hero fade-in-up">
-        <div class="hero-content">
-            <div class="hero-greeting">Welcome back, <span id="hero-name">Hero</span> 👋</div>
-            <p class="hero-subtitle">Complete your daily quests to earn XP, keep your streak alive, and level up.</p>
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <div class="hero-stat-icon level"><i data-lucide="star" style="width:16px;height:16px"></i></div>
-                    <div><div class="hero-stat-label">Level</div><div class="hero-stat-value" id="hero-level">1</div></div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-icon streak"><i data-lucide="flame" style="width:16px;height:16px"></i></div>
-                    <div><div class="hero-stat-label">Streak</div><div class="hero-stat-value" id="hero-streak">0 days</div></div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-icon rank"><i data-lucide="trophy" style="width:16px;height:16px"></i></div>
-                    <div><div class="hero-stat-label">Rank</div><div class="hero-stat-value" id="hero-rank">C</div></div>
-                </div>
-            </div>
-            <div class="xp-bar-container mt-3" style="max-width:480px;">
-                <div class="xp-bar-header">
-                    <span class="xp-bar-label">XP Progress to Next Level</span>
-                    <span class="xp-bar-value" id="xp-bar-value">0 / 500 XP</span>
-                </div>
-                <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar-fill" style="width:0%"></div></div>
-            </div>
-        </div>
-    </div>
+    <main>
+        <!-- Hero Section -->
+        <section class="hero fade-in-up" aria-label="Dashboard overview">
+            <div class="hero-content">
+                <h1 class="hero-greeting">
+                    Welcome back, <span id="hero-name">Hero</span> 👋
+                </h1>
+                <p class="hero-subtitle">
+                    Complete your daily quests to earn XP, keep your streak alive, and level up.
+                </p>
 
-    <!-- Stat Widgets -->
-    <div class="stats-grid stagger mb-4">
-        <div class="card stat-card fade-in-up">
-            <div class="stat-icon icon-primary"><i data-lucide="star"></i></div>
-            <div class="stat-label">Level</div>
-            <div class="stat-value stat-card--primary" id="level">1</div>
-        </div>
-        <div class="card stat-card fade-in-up">
-            <div class="stat-icon icon-accent"><i data-lucide="sparkles"></i></div>
-            <div class="stat-label">Total XP</div>
-            <div class="stat-value stat-card--accent" id="xp">0</div>
-        </div>
-        <div class="card stat-card fade-in-up">
-            <div class="stat-icon icon-warning"><i data-lucide="flame"></i></div>
-            <div class="stat-label">Streak</div>
-            <div class="stat-value stat-card--warning" id="streak">0</div>
-        </div>
-        <div class="card stat-card fade-in-up">
-            <div class="stat-icon icon-danger"><i data-lucide="heart"></i></div>
-            <div class="stat-label">HP</div>
-            <div class="stat-value stat-card--danger" id="hp">100</div>
-            <div class="health-meter mt-1" style="padding:0 var(--sp-3);">
-                <div class="health-bar-track"><div class="health-bar-fill hp-high" id="health-bar-fill" style="width:100%"></div></div>
-            </div>
-        </div>
-        <div class="card stat-card fade-in-up">
-            <div class="stat-icon icon-highlight"><i data-lucide="bar-chart-3"></i></div>
-            <div class="stat-label">Score</div>
-            <div class="stat-value stat-card--highlight" id="score">0</div>
-        </div>
-        <div class="card stat-card fade-in-up text-center">
-            <div class="stat-icon icon-gradient"><i data-lucide="award"></i></div>
-            <div class="stat-label">Rank</div>
-            <div class="stat-value"><span class="rank-badge rank-c" id="rank">C</span></div>
-        </div>
-    </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-icon level">
+                            <i data-lucide="star" style="width:16px;height:16px"></i>
+                        </div>
+                        <div>
+                            <div class="hero-stat-label">Level</div>
+                            <div class="hero-stat-value" id="hero-level">1</div>
+                        </div>
+                    </div>
 
-    <!-- Daily Quests -->
-    <div class="card card-static fade-in-up">
-        <div class="card-header">
-            <h2 class="card-title"><i data-lucide="swords"></i> Daily Quests</h2>
-            <span class="badge badge-primary badge-glow">+XP per quest</span>
-        </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-icon streak">
+                            <i data-lucide="flame" style="width:16px;height:16px"></i>
+                        </div>
+                        <div>
+                            <div class="hero-stat-label">Streak</div>
+                            <div class="hero-stat-value" id="hero-streak">0 days</div>
+                        </div>
+                    </div>
 
-        <div class="quest-card" id="quest-workout">
-            <div class="quest-left">
-                <div class="quest-icon workout"><i data-lucide="dumbbell" style="width:20px;height:20px"></i></div>
-                <div class="quest-info">
-                    <h4>Workout</h4>
-                    <p class="caption">20 min minimum</p>
+                    <div class="hero-stat">
+                        <div class="hero-stat-icon rank">
+                            <i data-lucide="trophy" style="width:16px;height:16px"></i>
+                        </div>
+                        <div>
+                            <div class="hero-stat-label">Rank</div>
+                            <div class="hero-stat-value" id="hero-rank">C</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="xp-bar-container mt-3" style="max-width:480px;">
+                    <div class="xp-bar-header">
+                        <span class="xp-bar-label">XP Progress to Next Level</span>
+                        <span class="xp-bar-value" id="xp-bar-value">0 / 500 XP</span>
+                    </div>
+                    <div
+                        class="xp-bar-track"
+                        role="progressbar"
+                        aria-label="XP progress to next level"
+                        aria-valuemin="0"
+                        aria-valuemax="500"
+                        aria-valuenow="0"
+                    >
+                        <div class="xp-bar-fill" id="xp-bar-fill" style="width:0%"></div>
+                    </div>
                 </div>
             </div>
-            <div class="quest-inputs">
-                <label class="checkbox-label"><input type="checkbox" id="task-workout"></label>
-                <input type="number" id="workout-min" class="form-input" placeholder="Min" min="0">
-                <input type="number" id="workout-bonus" class="form-input" placeholder="Bonus" min="0">
+        </section>
+
+        <!-- Stat Widgets -->
+        <section class="stats-grid stagger mb-4" aria-label="Player statistics">
+            <div class="card stat-card fade-in-up">
+                <div class="stat-icon icon-primary">
+                    <i data-lucide="star"></i>
+                </div>
+                <div class="stat-label">Level</div>
+                <div class="stat-value stat-card--primary" id="level">1</div>
             </div>
-        </div>
 
-        <div id="leetcode-container"></div>
+            <div class="card stat-card fade-in-up">
+                <div class="stat-icon icon-accent">
+                    <i data-lucide="sparkles"></i>
+                </div>
+                <div class="stat-label">Total XP</div>
+                <div class="stat-value stat-card--accent" id="xp">0</div>
+            </div>
 
-        <div class="quest-card" id="quest-project">
-            <div class="quest-left">
-                <div class="quest-icon project"><i data-lucide="code-2" style="width:20px;height:20px"></i></div>
-                <div class="quest-info">
-                    <h4>Project</h4>
-                    <p class="caption">30 min minimum</p>
+            <div class="card stat-card fade-in-up">
+                <div class="stat-icon icon-warning">
+                    <i data-lucide="flame"></i>
+                </div>
+                <div class="stat-label">Streak</div>
+                <div class="stat-value stat-card--warning" id="streak">0</div>
+            </div>
+
+            <div class="card stat-card fade-in-up">
+                <div class="stat-icon icon-danger">
+                    <i data-lucide="heart"></i>
+                </div>
+                <div class="stat-label">HP</div>
+                <div class="stat-value stat-card--danger" id="hp">100</div>
+                <div class="health-meter mt-1" style="padding:0 var(--sp-3);">
+                    <div class="health-bar-track">
+                        <div class="health-bar-fill hp-high" id="health-bar-fill" style="width:100%"></div>
+                    </div>
                 </div>
             </div>
-            <div class="quest-inputs">
-                <label class="checkbox-label"><input type="checkbox" id="task-project"></label>
-                <input type="number" id="project-min" class="form-input" placeholder="Min" min="0">
-                <input type="number" id="project-bonus" class="form-input" placeholder="Bonus" min="0">
-            </div>
-        </div>
 
-        <div class="quest-card" id="quest-study">
-            <div class="quest-left">
-                <div class="quest-icon study"><i data-lucide="book-open" style="width:20px;height:20px"></i></div>
-                <div class="quest-info">
-                    <h4>Study</h4>
-                    <p class="caption">20 min minimum</p>
+            <div class="card stat-card fade-in-up">
+                <div class="stat-icon icon-highlight">
+                    <i data-lucide="bar-chart-3"></i>
+                </div>
+                <div class="stat-label">Score</div>
+                <div class="stat-value stat-card--highlight" id="score">0</div>
+            </div>
+
+            <div class="card stat-card fade-in-up text-center">
+                <div class="stat-icon icon-gradient">
+                    <i data-lucide="award"></i>
+                </div>
+                <div class="stat-label">Rank</div>
+                <div class="stat-value">
+                    <span class="rank-badge rank-c" id="rank">C</span>
                 </div>
             </div>
-            <div class="quest-inputs">
-                <label class="checkbox-label"><input type="checkbox" id="task-study"></label>
-                <input type="number" id="study-min" class="form-input" placeholder="Min" min="0">
-                <input type="number" id="study-bonus" class="form-input" placeholder="Bonus" min="0">
-            </div>
-        </div>
+        </section>
 
-        <div class="quest-card" id="quest-water">
-            <div class="quest-left">
-                <div class="quest-icon water"><i data-lucide="droplets" style="width:20px;height:20px"></i></div>
-                <div class="quest-info">
-                    <h4>Drink Water</h4>
-                    <p class="caption">8 glasses target</p>
+        <!-- Daily Quests -->
+        <section class="card card-static fade-in-up" aria-labelledby="daily-quests-heading">
+            <div class="card-header">
+                <h2 class="card-title" id="daily-quests-heading">
+                    <i data-lucide="swords"></i> Daily Quests
+                </h2>
+                <span class="badge badge-primary badge-glow">+XP per quest</span>
+            </div>
+
+            <!-- Workout Quest -->
+            <div class="quest-card" id="quest-workout">
+                <div class="quest-left">
+                    <div class="quest-icon workout">
+                        <i data-lucide="dumbbell" style="width:20px;height:20px"></i>
+                    </div>
+                    <div class="quest-info">
+                        <h3>Workout</h3>
+                        <p class="caption">20 min minimum</p>
+                    </div>
+                </div>
+
+                <div class="quest-inputs">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="task-workout" aria-label="Complete Workout quest">
+                    </label>
+                    <label for="workout-min" class="sr-only">Workout minutes</label>
+                    <input type="number" id="workout-min" class="form-input" placeholder="Min" min="0">
+                    <label for="workout-bonus" class="sr-only">Workout bonus</label>
+                    <input type="number" id="workout-bonus" class="form-input" placeholder="Bonus" min="0">
                 </div>
             </div>
-            <div class="quest-inputs">
-                <label class="checkbox-label"><input type="checkbox" id="task-water"></label>
-                <input type="number" id="water-glasses" class="form-input" placeholder="Glasses" min="0" max="20">
+
+            <div id="leetcode-container"></div>
+
+            <!-- Project Quest -->
+            <div class="quest-card" id="quest-project">
+                <div class="quest-left">
+                    <div class="quest-icon project">
+                        <i data-lucide="code-2" style="width:20px;height:20px"></i>
+                    </div>
+                    <div class="quest-info">
+                        <h3>Project</h3>
+                        <p class="caption">30 min minimum</p>
+                    </div>
+                </div>
+
+                <div class="quest-inputs">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="task-project" aria-label="Complete Project quest">
+                    </label>
+                    <label for="project-min" class="sr-only">Project minutes</label>
+                    <input type="number" id="project-min" class="form-input" placeholder="Min" min="0">
+                    <label for="project-bonus" class="sr-only">Project bonus</label>
+                    <input type="number" id="project-bonus" class="form-input" placeholder="Bonus" min="0">
+                </div>
             </div>
-        </div>
 
-        <div class="d-flex gap-2 mt-3">
-            <button id="save-btn" class="btn btn-primary"><i data-lucide="save" style="width:16px;height:16px"></i> Save Progress</button>
-            <button id="reset-btn" class="btn btn-secondary"><i data-lucide="rotate-ccw" style="width:16px;height:16px"></i> Reset</button>
-        </div>
-    </div>
+            <!-- Study Quest -->
+            <div class="quest-card" id="quest-study">
+                <div class="quest-left">
+                    <div class="quest-icon study">
+                        <i data-lucide="book-open" style="width:20px;height:20px"></i>
+                    </div>
+                    <div class="quest-info">
+                        <h3>Study</h3>
+                        <p class="caption">20 min minimum</p>
+                    </div>
+                </div>
 
-    <div id="message-container" class="mt-2"></div>
+                <div class="quest-inputs">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="task-study" aria-label="Complete Study quest">
+                    </label>
+                    <label for="study-min" class="sr-only">Study minutes</label>
+                    <input type="number" id="study-min" class="form-input" placeholder="Min" min="0">
+                    <label for="study-bonus" class="sr-only">Study bonus</label>
+                    <input type="number" id="study-bonus" class="form-input" placeholder="Bonus" min="0">
+                </div>
+            </div>
+
+            <!-- Water Quest -->
+            <div class="quest-card" id="quest-water">
+                <div class="quest-left">
+                    <div class="quest-icon water">
+                        <i data-lucide="droplets" style="width:20px;height:20px"></i>
+                    </div>
+                    <div class="quest-info">
+                        <h3>Drink Water</h3>
+                        <p class="caption">8 glasses target</p>
+                    </div>
+                </div>
+
+                <div class="quest-inputs">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="task-water" aria-label="Complete Drink Water quest">
+                    </label>
+                    <label for="water-glasses" class="sr-only">Number of glasses of water</label>
+                    <input type="number" id="water-glasses" class="form-input" placeholder="Glasses" min="0" max="20">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button id="save-btn" class="btn btn-primary">
+                    <i data-lucide="save" style="width:16px;height:16px"></i>
+                    Save Progress
+                </button>
+                <button id="reset-btn" class="btn btn-secondary">
+                    <i data-lucide="rotate-ccw" style="width:16px;height:16px"></i>
+                    Reset
+                </button>
+            </div>
+        </section>
+
+        <!-- Accessible status announcements -->
+        <div
+            id="message-container"
+            class="mt-2"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+        ></div>
+    </main>
 
     <script src="/js/app.js"></script>
     <script src="/js/auth.js"></script>

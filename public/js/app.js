@@ -98,11 +98,20 @@ function getInitials(name) { return name.split(' ').map(n => n[0]).join('').toUp
 function showToast(message, type = 'info', duration = 3500) {
     const c = document.getElementById('toast-container');
     if (!c) return;
+
     const t = document.createElement('div');
     t.className = `toast toast--${type}`;
-    t.innerHTML = message;
+    t.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+    t.setAttribute('aria-atomic', 'true');
+
+    t.textContent = message;
     c.appendChild(t);
-    setTimeout(() => { t.style.animation = 'fadeIn 0.25s ease reverse both'; setTimeout(() => t.remove(), 250); }, duration);
+
+    setTimeout(() => {
+        t.style.animation = 'fadeIn 0.25s ease reverse both';
+        setTimeout(() => t.remove(), 250);
+    }, duration);
 }
 
 function animateNumber(el, target, duration = 900) {
@@ -117,11 +126,25 @@ function animateNumber(el, target, duration = 900) {
 }
 
 function updateXPBar(xp, max = 500) {
-    const pct = ((xp % max) / max) * 100;
+    const currentXP = xp % max;
+    const pct = (currentXP / max) * 100;
+
     const fill = document.getElementById('xp-bar-fill');
     const val = document.getElementById('xp-bar-value');
-    if (fill) fill.style.width = `${pct}%`;
-    if (val) val.textContent = `${xp % max} / ${max} XP`;
+    const track = fill ? fill.parentElement : null;
+
+    if (fill) {
+        fill.style.width = `${pct}%`;
+    }
+
+    if (val) {
+        val.textContent = `${currentXP} / ${max} XP`;
+    }
+
+    if (track) {
+        track.setAttribute('aria-valuenow', currentXP);
+        track.setAttribute('aria-valuemax', max);
+    }
 }
 
 function updateHealthMeter(hp) {
